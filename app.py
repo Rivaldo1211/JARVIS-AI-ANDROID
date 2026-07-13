@@ -17,6 +17,8 @@ if "GEMINI_API_KEY" in st.secrets:
 else:
     MINHA_CHAVE_API = "CHAVE_REMOVIDA_POR_SEGURANCA"
 
+cliente_gemini = genai.Client(api_key=MINHA_CHAVE_API)
+
 # ==============================================================================
 # 3. INTERFACE WEB (STREAMLIT)
 # ==============================================================================
