@@ -3,7 +3,7 @@
 Assistente pessoal para Android, desenvolvido em Kotlin e Jetpack Compose. O projeto prioriza interação por voz, comandos no aparelho e uma memória pessoal local, sem exigir uma API de IA para essas funções.
 
 <p align="center">
-  <strong>JARVIS 0.4.0</strong><br>
+  <strong>JARVIS 0.6.0</strong><br>
   Assistente Android • Português brasileiro • Memória local
 </p>
 
@@ -106,3 +106,9 @@ O APK gerado é de depuração (debug), não uma versão assinada para distribui
 
 - [Documentação técnica e funcional do Android](jarvis-android/README.md)
 - [Workflow de compilação](.github/workflows/jarvis-android-build.yml)
+
+## Ativação por voz (0.6.0)
+
+A detecção da palavra-chave usa o SDK Porcupine, com processamento de áudio no aparelho. Para habilitar, crie uma conta no [Picovoice Console](https://console.picovoice.ai/), gere uma AccessKey e cadastre-a no GitHub em **Settings → Secrets and variables → Actions → New repository secret**, com o nome `PICOVOICE_ACCESS_KEY`. Nunca coloque essa chave diretamente no código ou em commits. O workflow injeta o segredo somente durante a compilação.
+
+No Android, abra o JARVIS e toque em **ATIVAR CHAMADA: JARVIS**. O Android exibirá a notificação permanente do serviço. A detecção pode continuar com a tela apagada enquanto o serviço permanecer ativo, mas o HyperOS pode encerrar processos em segundo plano. Quando a palavra for detectada com o app em primeiro plano, o reconhecimento de comando é iniciado automaticamente; se o app estiver totalmente em segundo plano, o sistema mostra uma notificação para tocar e continuar a conversa. A inicialização do serviço exige que o usuário abra o app e ative o recurso enquanto ele está visível, conforme as regras de microfone do Android 14+.
