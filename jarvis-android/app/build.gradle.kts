@@ -14,7 +14,7 @@ android {
         targetSdk = 35
         versionCode = 6
         versionName = "0.6.0"
-        buildConfigField("String", "PICOVOICE_ACCESS_KEY", "\\\"${System.getenv("PICOVOICE_ACCESS_KEY") ?: ""}\\\"")
+        buildConfigField("String", "PICOVOICE_ACCESS_KEY", "\"${System.getenv("PICOVOICE_ACCESS_KEY") ?: ""}\"")
     }
 
     compileOptions {
