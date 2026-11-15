@@ -1,51 +1,104 @@
-# JARVIS AI — Android
+# JARVIS Android — Documentação do aplicativo
 
-Assistente pessoal Android em Kotlin e Jetpack Compose, com reconhecimento de fala pt-BR, resposta falada, comandos locais e memória pessoal adaptativa armazenada no próprio aparelho.
+**Versão do código:** 0.4.0  
+**Plataforma:** Android 8.0 (API 26) ou superior  
+**Tecnologias:** Kotlin, Jetpack Compose, Android SpeechRecognizer e Text-to-Speech
 
-## Versão 0.4.0
+## 1. Visão geral
 
-- [x] Interface futurista JARVIS HUD
-- [x] Reconhecimento de fala pt-BR pelo serviço disponível no Android
-- [x] Resposta por Text-to-Speech com ajuste de timbre e ritmo
-- [x] Abrir YouTube, WhatsApp, Chrome e Configurações por comando
-- [x] Pesquisa web iniciada por comando de voz
-- [x] Perfil pessoal local e persistente
-- [x] Aprendizado explícito de nome, interesses, preferências, trabalho, objetivos, localidade e estilo de resposta
-- [x] Consulta e exclusão da memória por comando de voz
-- [x] Fluxo principal sem dependência de API de IA ou servidor externo
-- [ ] Raciocínio generativo avançado totalmente offline
-- [ ] Modelo de linguagem local embarcado
-- [ ] Palavra de ativação contínua "Jarvis"
-- [ ] Serviço de voz em segundo plano / integração com assistente padrão
+O JARVIS é um assistente pessoal Android com interface futurista, interação por voz, comandos locais e memória pessoal persistente. O foco da versão 0.4.0 é guardar informações que a pessoa declara e utilizá-las para personalizar algumas interações.
 
-## Memória e privacidade
+O núcleo atual não precisa de API de IA ou servidor externo para salvar o perfil, consultar informações memorizadas e executar os comandos locais implementados.
 
-O perfil é salvo em armazenamento privado do aplicativo (SharedPreferences) no próprio Android. O JARVIS não envia essas informações para um backend. Nesta versão, ele aprende quando a pessoa declara explicitamente fatos e preferências, por exemplo:
+## 2. Funcionalidades implementadas
 
-- "Meu nome é Ana"
-- "Eu gosto de tecnologia"
-- "Prefiro respostas curtas"
-- "Trabalho com logística"
-- "Meu objetivo é aprender programação"
+- Interface JARVIS HUD em Jetpack Compose.
+- Reconhecimento de fala em português brasileiro, conforme disponibilidade do serviço Android.
+- Respostas faladas por Text-to-Speech, com ajustes de ritmo e tom.
+- Atalhos de voz para YouTube, WhatsApp, Chrome e Configurações.
+- Pesquisa na web por comando, abrindo o navegador.
+- Memória pessoal persistente no armazenamento privado do aplicativo.
+- Reconhecimento de declarações explícitas sobre nome, interesses, preferências, trabalho, objetivos, localidade e estilo de resposta.
+- Consulta e exclusão de informações memorizadas por comandos de voz.
 
-Comandos de memória:
-- "O que você sabe sobre mim?"
-- "Qual é meu nome?"
-- "Esqueça meu nome"
-- "Apague minha memória"
+## 3. Como ensinar informações ao JARVIS
 
-A memória é local ao aplicativo. Desinstalar o app ou limpar os dados do aplicativo também apaga esse armazenamento. O reconhecimento de fala do Android pode depender do serviço de voz configurado no aparelho; pesquisas na web abrem o navegador.
+Fale de forma direta, por exemplo:
 
-## Limite técnico desta versão
+| Diga ao JARVIS | Informação que ele registra |
+|---|---|
+| "Meu nome é Ana" | Nome |
+| "Eu gosto de tecnologia" | Interesse |
+| "Prefiro respostas curtas" | Preferência |
+| "Trabalho com logística" | Trabalho |
+| "Meu objetivo é aprender programação" | Objetivo |
+| "Moro em Palotina" | Localidade |
 
-Memória, perfil e regras adaptativas funcionam sem API. Isso não equivale a um modelo de linguagem: respostas abertas, raciocínio amplo e geração de conteúdo ainda são limitados. Para obter conversa generativa offline, será necessário integrar e otimizar um modelo de linguagem local compatível com a memória e com os recursos de hardware do dispositivo.
+As informações são salvas localmente. Se uma declaração não seguir os padrões reconhecidos pelo código, o JARVIS pode não identificá-la como informação de perfil.
 
-## Requisitos
+## 4. Consultar e administrar a memória
 
-- Android 8.0 (API 26) ou superior
-- Microfone e serviço de reconhecimento de fala disponíveis
-- Internet somente para pesquisas web e quando o provedor de reconhecimento de voz exigir
+| Comando | Resultado |
+|---|---|
+| "O que você sabe sobre mim?" | Lê o resumo das informações registradas |
+| "Qual é meu nome?" | Informa o nome salvo, se houver |
+| "Esqueça meu nome" | Exclui somente o nome |
+| "Apague minha memória" | Exclui todas as informações pessoais salvas |
 
-## Compilação
+A exclusão completa também pode ser feita limpando os dados do aplicativo nas configurações do Android ou desinstalando-o.
 
-O workflow GitHub Actions em `.github/workflows/jarvis-android-build.yml` compila o APK de depuração e publica o artefato na execução do workflow.
+## 5. Armazenamento e privacidade
+
+O perfil é guardado em `SharedPreferences`, no espaço privado do aplicativo. A funcionalidade de memória não transmite o perfil para uma API ou backend.
+
+A entrada de voz utiliza o serviço de reconhecimento de fala disponível/configurado no aparelho. Esse serviço pode pertencer ao Google ou a outro provedor, e suas práticas de processamento e privacidade são independentes do armazenamento local do JARVIS.
+
+Não use a memória do aplicativo como cofre de senhas, dados bancários, documentos ou outras informações altamente sensíveis.
+
+## 6. Limitações conhecidas
+
+A memória atual é baseada em padrões de frases e regras locais. Ela não interpreta qualquer frase com compreensão humana, não aprende automaticamente tudo o que é dito e não possui raciocínio generativo amplo.
+
+Ainda não estão implementados:
+- Modelo de linguagem local embarcado.
+- Conversação aberta com raciocínio avançado totalmente offline.
+- Aprendizado automático de padrões de comportamento.
+- Palavra de ativação contínua "Jarvis".
+- Escuta permanente garantida com a tela apagada.
+- Voz neural masculina de alta naturalidade integrada ao aplicativo.
+
+A qualidade do reconhecimento de fala e da voz sintetizada também depende dos serviços e vozes instalados no Android.
+
+## 7. Requisitos e permissões
+
+- Android 8.0 (API 26) ou superior.
+- Permissão de microfone para reconhecer comandos.
+- Serviço de reconhecimento de fala disponível.
+- Conexão com a internet para abrir pesquisas na web e quando o serviço de voz exigir.
+
+## 8. Compilação e instalação
+
+A compilação é feita pelo GitHub Actions, sem necessidade de compilar no computador local:
+
+1. Abra a aba **Actions** do repositório.
+2. Selecione **Build JARVIS Android APK**.
+3. Clique em **Run workflow** e escolha `main`.
+4. Aguarde o workflow terminar com sucesso.
+5. Baixe o artefato `jarvis-ai-debug-apk`.
+6. Extraia o ZIP e instale `app-debug.apk`.
+7. Conceda a permissão de microfone quando solicitada.
+
+O artefato é um APK debug. Se houver incompatibilidade de assinatura ao atualizar, desinstale a versão anterior antes de instalar a nova. A desinstalação remove a memória local.
+
+## 9. Próximas evoluções
+
+1. Criar uma área de perfil para revisar, corrigir e excluir cada informação.
+2. Melhorar a extração de fatos e o reconhecimento de contexto em português.
+3. Implementar um mecanismo de memória com categorias, origem e confirmação do usuário.
+4. Avaliar modelos de linguagem locais adequados ao hardware Android.
+5. Integrar voz neural opcional e controles de privacidade.
+6. Investigar ativação por palavra-chave e execução em segundo plano dentro das políticas e restrições do Android.
+
+---
+
+Para a visão geral do projeto, consulte o [README principal](../README.md).
