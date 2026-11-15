@@ -39,7 +39,7 @@ jobs:
 
       - name: Build debug APK
         working-directory: jarvis-android
-        run: gradle --no-daemon assembleDebug
+        env:\n          JARVIS_API_URL: ${{ vars.JARVIS_API_URL }}\n        run: gradle --no-daemon -PJARVIS_API_URL="$JARVIS_API_URL" assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
