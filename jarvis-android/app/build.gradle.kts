@@ -14,11 +14,6 @@ android {
         targetSdk = 35
         versionCode = 4
         versionName = "0.4.0"
-        buildConfigField(
-            "String",
-            "JARVIS_API_URL",
-            "\"${providers.gradleProperty("JARVIS_API_URL").orElse("").get()}\""
-        )
     }
 
     compileOptions {
@@ -30,7 +25,6 @@ android {
 
     buildFeatures {
         compose = true
-        buildConfig = true
     }
 
     packaging { resources.excludes += "/META-INF/{AL2.0,LGPL2.1}" }
