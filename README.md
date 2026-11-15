@@ -14,7 +14,7 @@ A API está em `jarvis-backend/` e usa FastAPI + Google Gemini. A chave `GEMINI_
 3. O Render identificará `jarvis-backend/render.yaml`. Confirme o serviço `jarvis-ai-api` no plano Free.
 4. Gere uma chave em https://aistudio.google.com/app/apikey.
 5. No painel do serviço Render, abra **Environment** e cadastre `GEMINI_API_KEY` com o valor da chave. Não a envie neste repositório nem neste chat.
-6. Salve e aguarde o deploy. Teste `https://SEU-SERVICO.onrender.com/health`; a resposta esperada contém `"status":"ok"` e `"model_configured":true`.
+6. Salve e aguarde o deploy. Copie a URL pública do serviço (por exemplo, `https://jarvis-ai-api.onrender.com`). No GitHub, abra **Settings → Secrets and variables → Actions → Variables → New repository variable** e crie a variável `JARVIS_API_URL` com essa URL HTTPS. Ela é um endereço público, não uma chave secreta. Depois, execute novamente o workflow **Build JARVIS Android APK** na aba Actions para gerar o aplicativo conectado ao servidor. Teste `https://SEU-SERVICO.onrender.com/health`; a resposta esperada contém `"status":"ok"` e `"model_configured":true`.
 
 O plano gratuito do Render pode suspender o serviço após inatividade; a primeira chamada posterior pode demorar para reativá-lo. O uso do Gemini depende dos limites e das condições vigentes na conta Google.
 
