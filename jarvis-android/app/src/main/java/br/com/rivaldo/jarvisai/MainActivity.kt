@@ -8,12 +8,21 @@ import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.speech.tts.TextToSpeech
+import android.speech.tts.Voice
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -21,8 +30,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
@@ -33,9 +46,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.net.URLEncoder
@@ -45,12 +63,19 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.util.Locale
 
+private val VoidBlack = Color(0xFF03070D)
+private val Panel = Color(0xFF091522)
+private val Cyan = Color(0xFF45E7FF)
+private val Ice = Color(0xFFBCEFFF)
+private val Muted = Color(0xFF6F8DA3)
+private val Gold = Color(0xFFFFC66D)
+
 class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
     private var speechRecognizer: SpeechRecognizer? = null
     private var tts: TextToSpeech? = null
-    private var status by mutableStateOf("Inicializando sistemas...")
-    private var transcript by mutableStateOf("Toque no botão e diga: Jarvis, abra o YouTube.")
-    private var answer by mutableStateOf("Olá. Sou o JARVIS. Estou pronto para receber comandos.")
+    private var status by mutableStateOf("INICIALIZANDO NÚCLEO")
+    private var transcript by mutableStateOf("Aguardando comando de voz...")
+    private var answer by mutableStateOf("Sistemas em espera. Como posso ajudar?")
     private var listening by mutableStateOf(false)
     private val conversationHistory = mutableListOf<Pair<String, String>>()
 
@@ -58,9 +83,9 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
         super.onCreate(savedInstanceState)
         tts = TextToSpeech(this, this)
         status = if (SpeechRecognizer.isRecognitionAvailable(this)) {
-            "Sistema de voz disponível"
+            "SISTEMAS ONLINE"
         } else {
-            "Reconhecimento de voz indisponível neste aparelho"
+            "MÓDULO DE VOZ INDISPONÍVEL"
         }
 
         setContent {
@@ -69,74 +94,266 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
             ) { granted ->
                 if (granted) startListening()
                 else {
-                    status = "Permissão de microfone negada"
+                    status = "ACESSO AO MICROFONE NEGADO"
                     answer = "Preciso da permissão do microfone para ouvir seus comandos."
                 }
             }
 
+            val transition = rememberInfiniteTransition(label = "jarvis-hud")
+            val rotation by transition.animateFloat(
+                initialValue = 0f,
+                targetValue = 360f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(durationMillis = 14000, easing = LinearEasing)
+                ),
+                label = "hud-rotation"
+            )
+            val pulse by transition.animateFloat(
+                initialValue = 0.94f,
+                targetValue = 1.04f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(durationMillis = 1800, easing = LinearEasing),
+                    repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
+                ),
+                label = "hud-pulse"
+            )
+
             MaterialTheme {
-                Surface(modifier = Modifier.fillMaxSize(), color = Color(0xFF050B16)) {
-                    Column(
+                Surface(modifier = Modifier.fillMaxSize(), color = VoidBlack) {
+                    Box(
                         modifier = Modifier
                             .fillMaxSize()
                             .background(
                                 Brush.verticalGradient(
-                                    listOf(Color(0xFF101F38), Color(0xFF050B16), Color.Black)
+                                    listOf(Color(0xFF0B2030), VoidBlack, Color(0xFF020409))
                                 )
                             )
-                            .padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
                     ) {
-                        Text("J.A.R.V.I.S.", color = Color(0xFF64D8FF), fontSize = 34.sp, fontWeight = FontWeight.Bold)
-                        Text("JUST A RATHER VERY INTELLIGENT SYSTEM", color = Color(0xFF8CA9C8), fontSize = 9.sp)
-                        Spacer(Modifier.height(42.dp))
-                        Surface(
-                            modifier = Modifier.padding(8.dp),
-                            shape = CircleShape,
-                            color = Color(0xFF102B49)
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .verticalScroll(rememberScrollState())
+                                .padding(horizontal = 22.dp, vertical = 24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text(
+                                        "STARK INDUSTRIES  /  AI",
+                                        color = Muted,
+                                        fontSize = 9.sp,
+                                        letterSpacing = 2.2.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        "J.A.R.V.I.S.",
+                                        color = Ice,
+                                        fontSize = 30.sp,
+                                        letterSpacing = 4.sp,
+                                        fontWeight = FontWeight.Light
+                                    )
+                                }
+                                Column(horizontalAlignment = Alignment.End) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Box(
+                                            Modifier
+                                                .size(7.dp)
+                                                .clip(CircleShape)
+                                                .background(if (listening) Gold else Cyan)
+                                        )
+                                        Spacer(Modifier.width(7.dp))
+                                        Text(
+                                            if (listening) "CAPTANDO" else "ONLINE",
+                                            color = if (listening) Gold else Cyan,
+                                            fontSize = 10.sp,
+                                            letterSpacing = 1.5.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                    Text("CORE  /  V0.3", color = Muted, fontSize = 9.sp)
+                                }
+                            }
+
+                            Spacer(Modifier.height(24.dp))
+
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .border(1.dp, Color(0x3345E7FF), RoundedCornerShape(26.dp))
+                                    .background(
+                                        Brush.verticalGradient(
+                                            listOf(Color(0xFF0B2435), Color(0xFF06111D))
+                                        ),
+                                        RoundedCornerShape(26.dp)
+                                    )
+                                    .padding(vertical = 18.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        "NEURAL INTERFACE",
+                                        color = Muted,
+                                        fontSize = 9.sp,
+                                        letterSpacing = 3.sp
+                                    )
+                                    Spacer(Modifier.height(8.dp))
+                                    Box(
+                                        modifier = Modifier.size(258.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Canvas(Modifier.fillMaxSize()) {
+                                            val center = this.center
+                                            val baseRadius = size.minDimension * 0.39f
+                                            drawCircle(
+                                                brush = Brush.radialGradient(
+                                                    listOf(Color(0x5545E7FF), Color.Transparent),
+                                                    center = center,
+                                                    radius = baseRadius * 1.55f
+                                                ),
+                                                radius = baseRadius * 1.55f,
+                                                center = center
+                                            )
+                                            drawCircle(
+                                                color = Color(0x6645E7FF),
+                                                radius = baseRadius,
+                                                center = center,
+                                                style = Stroke(width = 1.5.dp.toPx())
+                                            )
+                                            drawCircle(
+                                                color = Color(0x5545E7FF),
+                                                radius = baseRadius * 0.82f,
+                                                center = center,
+                                                style = Stroke(width = 1.dp.toPx())
+                                            )
+                                            drawArc(
+                                                color = Cyan,
+                                                startAngle = rotation,
+                                                sweepAngle = 82f,
+                                                useCenter = false,
+                                                topLeft = androidx.compose.ui.geometry.Offset(
+                                                    center.x - baseRadius * 1.12f,
+                                                    center.y - baseRadius * 1.12f
+                                                ),
+                                                size = androidx.compose.ui.geometry.Size(
+                                                    baseRadius * 2.24f,
+                                                    baseRadius * 2.24f
+                                                ),
+                                                style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
+                                            )
+                                            drawArc(
+                                                color = Gold.copy(alpha = 0.85f),
+                                                startAngle = -rotation * 0.65f,
+                                                sweepAngle = 38f,
+                                                useCenter = false,
+                                                topLeft = androidx.compose.ui.geometry.Offset(
+                                                    center.x - baseRadius * 0.92f,
+                                                    center.y - baseRadius * 0.92f
+                                                ),
+                                                size = androidx.compose.ui.geometry.Size(
+                                                    baseRadius * 1.84f,
+                                                    baseRadius * 1.84f
+                                                ),
+                                                style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round)
+                                            )
+                                            for (i in 0 until 48) {
+                                                val angle = Math.toRadians(i * 7.5)
+                                                val inner = baseRadius * 1.18f
+                                                val outer = inner + if (i % 4 == 0) 8.dp.toPx() else 3.dp.toPx()
+                                                val x1 = center.x + kotlin.math.cos(angle).toFloat() * inner
+                                                val y1 = center.y + kotlin.math.sin(angle).toFloat() * inner
+                                                val x2 = center.x + kotlin.math.cos(angle).toFloat() * outer
+                                                val y2 = center.y + kotlin.math.sin(angle).toFloat() * outer
+                                                drawLine(
+                                                    color = if (i % 4 == 0) Cyan.copy(alpha = 0.8f) else Muted.copy(alpha = 0.5f),
+                                                    start = androidx.compose.ui.geometry.Offset(x1, y1),
+                                                    end = androidx.compose.ui.geometry.Offset(x2, y2),
+                                                    strokeWidth = if (i % 4 == 0) 2.dp.toPx() else 1.dp.toPx()
+                                                )
+                                            }
+                                        }
+                                        Box(
+                                            modifier = Modifier
+                                                .size((116 * pulse).dp)
+                                                .clip(CircleShape)
+                                                .background(
+                                                    Brush.radialGradient(
+                                                        listOf(Color(0xFF17445A), Color(0xFF071522))
+                                                    )
+                                                )
+                                                .border(1.dp, Cyan.copy(alpha = 0.65f), CircleShape),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                "J",
+                                                color = Ice,
+                                                fontSize = 66.sp,
+                                                fontWeight = FontWeight.ExtraLight,
+                                                fontFamily = FontFamily.SansSerif
+                                            )
+                                        }
+                                    }
+                                    Text(
+                                        if (listening) "ANALISANDO SINAL DE ÁUDIO" else "AGUARDANDO INSTRUÇÕES",
+                                        color = if (listening) Gold else Cyan,
+                                        fontSize = 10.sp,
+                                        letterSpacing = 2.sp,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    Spacer(Modifier.height(8.dp))
+                                    Text(status, color = Muted, fontSize = 10.sp)
+                                }
+                            }
+
+                            Spacer(Modifier.height(18.dp))
+
+                            HudMessageCard(
+                                label = "ENTRADA DE VOZ",
+                                content = transcript,
+                                accent = Muted
+                            )
+                            Spacer(Modifier.height(10.dp))
+                            HudMessageCard(
+                                label = "RESPOSTA DO JARVIS",
+                                content = answer,
+                                accent = Cyan
+                            )
+
+                            Spacer(Modifier.height(20.dp))
+                            Button(
+                                onClick = {
+                                    if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                                        startListening()
+                                    } else {
+                                        permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth().height(58.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFF0B7897),
+                                    contentColor = Color.White
+                                ),
+                                shape = RoundedCornerShape(16.dp)
+                            ) {
+                                Text(
+                                    if (listening) "ESCUTANDO..." else "INICIAR COMUNICAÇÃO",
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 1.5.sp,
+                                    fontSize = 12.sp
+                                )
+                            }
+                            Spacer(Modifier.height(14.dp))
                             Text(
-                                if (listening) "•••" else "J",
-                                modifier = Modifier.padding(horizontal = 48.dp, vertical = 38.dp),
-                                color = Color(0xFF64D8FF),
-                                fontSize = 54.sp,
-                                fontWeight = FontWeight.Light
+                                "VOICE INTERFACE  •  SECURE CONNECTION  •  PERSONAL AI",
+                                color = Color(0xFF456176),
+                                fontSize = 8.sp,
+                                letterSpacing = 1.1.sp,
+                                textAlign = TextAlign.Center
                             )
                         }
-                        Spacer(Modifier.height(24.dp))
-                        Text(status, color = Color(0xFF64D8FF), fontSize = 13.sp)
-                        Spacer(Modifier.height(20.dp))
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            color = Color(0xFF101B2B),
-                            shape = RoundedCornerShape(18.dp)
-                        ) {
-                            Column(Modifier.padding(18.dp)) {
-                                Text("VOCÊ DISSE", color = Color(0xFF64D8FF), fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                                Text(transcript, color = Color.White, modifier = Modifier.padding(top = 6.dp))
-                                Spacer(Modifier.height(16.dp))
-                                Text("JARVIS", color = Color(0xFF64D8FF), fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                                Text(answer, color = Color(0xFFE4EDF8), modifier = Modifier.padding(top = 6.dp))
-                            }
-                        }
-                        Spacer(Modifier.height(28.dp))
-                        Button(
-                            onClick = {
-                                if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-                                    startListening()
-                                } else {
-                                    permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth().height(54.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF087EAD)),
-                            shape = RoundedCornerShape(16.dp)
-                        ) {
-                            Text(if (listening) "OUVINDO..." else "FALAR COM JARVIS", fontWeight = FontWeight.Bold)
-                        }
-                        Spacer(Modifier.height(12.dp))
-                        Text("Versão inicial • Comandos locais por voz", color = Color(0xFF71849C), fontSize = 11.sp)
                     }
                 }
             }
@@ -145,27 +362,60 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
 
     override fun onInit(result: Int) {
         if (result == TextToSpeech.SUCCESS) {
-            tts?.language = Locale("pt", "BR")
-            answer = "Olá. Sou o JARVIS. Como posso ajudar?"
+            configureJarvisVoice()
+            answer = "Sistemas online. Estou à sua disposição."
+        } else {
+            status = "SÍNTESE DE VOZ INDISPONÍVEL"
         }
+    }
+
+    private fun configureJarvisVoice() {
+        val engine = tts ?: return
+        val locale = Locale("pt", "BR")
+        val languageResult = engine.setLanguage(locale)
+        if (languageResult == TextToSpeech.LANG_MISSING_DATA ||
+            languageResult == TextToSpeech.LANG_NOT_SUPPORTED
+        ) {
+            status = "VOZ PORTUGUÊS BRASIL NÃO DISPONÍVEL"
+        }
+
+        val brazilianVoices = engine.voices.orEmpty().filter {
+            it.locale.language == "pt" && it.locale.country.equals("BR", ignoreCase = true)
+        }
+        val maleNamedVoice = brazilianVoices.firstOrNull { voice ->
+            val voiceName = voice.name.lowercase(Locale.ROOT)
+            voiceName.contains("male") ||
+                voiceName.contains("mascul") ||
+                voiceName.contains("homem")
+        }
+        val bestAvailableVoice: Voice? = maleNamedVoice
+            ?: brazilianVoices.maxByOrNull { it.quality }
+
+        if (bestAvailableVoice != null) {
+            engine.voice = bestAvailableVoice
+        }
+
+        // Timbre mais grave e ritmo calmo. O gênero real da voz depende das vozes instaladas no aparelho.
+        engine.setPitch(0.82f)
+        engine.setSpeechRate(0.92f)
     }
 
     private fun startListening() {
         if (!SpeechRecognizer.isRecognitionAvailable(this)) {
-            status = "Serviço de reconhecimento de voz não encontrado"
+            status = "SERVIÇO DE RECONHECIMENTO NÃO ENCONTRADO"
             return
         }
         speechRecognizer?.destroy()
         speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this).also { recognizer ->
             recognizer.setRecognitionListener(object : RecognitionListener {
-                override fun onReadyForSpeech(params: Bundle?) { listening = true; status = "Estou ouvindo..." }
-                override fun onBeginningOfSpeech() { status = "Pode falar" }
+                override fun onReadyForSpeech(params: Bundle?) { listening = true; status = "CAPTANDO COMANDO" }
+                override fun onBeginningOfSpeech() { status = "PODE FALAR" }
                 override fun onRmsChanged(rmsdB: Float) = Unit
                 override fun onBufferReceived(buffer: ByteArray?) = Unit
-                override fun onEndOfSpeech() { listening = false; status = "Processando comando..." }
+                override fun onEndOfSpeech() { listening = false; status = "PROCESSANDO" }
                 override fun onError(error: Int) {
                     listening = false
-                    status = "Não consegui reconhecer. Tente novamente."
+                    status = "NÃO FOI POSSÍVEL RECONHECER"
                 }
                 override fun onResults(results: Bundle?) {
                     listening = false
@@ -227,8 +477,8 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
             return
         }
 
-        status = "Consultando o Gemini..."
-        answer = "Estou pensando..."
+        status = "CONSULTANDO INTELIGÊNCIA ARTIFICIAL"
+        answer = "Processando sua solicitação..."
         Thread {
             var connection: HttpURLConnection? = null
             try {
@@ -259,24 +509,16 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
                 }
 
                 val statusCode = connection.responseCode
-                val responseStream = if (statusCode in 200..299) {
-                    connection.inputStream
-                } else {
-                    connection.errorStream
-                }
+                val responseStream = if (statusCode in 200..299) connection.inputStream else connection.errorStream
                 val responseText = responseStream?.bufferedReader()?.use { it.readText() }.orEmpty()
-                if (statusCode !in 200..299) {
-                    throw IllegalStateException("Servidor respondeu HTTP $statusCode")
-                }
+                if (statusCode !in 200..299) throw IllegalStateException("HTTP $statusCode")
 
                 val reply = JSONObject(responseText).optString("reply").trim()
                 if (reply.isBlank()) throw IllegalStateException("Resposta vazia")
 
                 conversationHistory.add("user" to message)
                 conversationHistory.add("assistant" to reply)
-                while (conversationHistory.size > 12) {
-                    conversationHistory.removeAt(0)
-                }
+                while (conversationHistory.size > 12) conversationHistory.removeAt(0)
 
                 runOnUiThread { speak(reply) }
             } catch (_: Exception) {
@@ -307,7 +549,7 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
     private fun speak(message: String) {
         answer = message
         tts?.speak(message, TextToSpeech.QUEUE_FLUSH, null, "jarvis-response")
-        status = "Pronto"
+        status = "SISTEMAS ONLINE"
     }
 
     override fun onDestroy() {
@@ -315,5 +557,33 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
         tts?.stop()
         tts?.shutdown()
         super.onDestroy()
+    }
+}
+
+@androidx.compose.runtime.Composable
+private fun HudMessageCard(label: String, content: String, accent: Color) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, accent.copy(alpha = 0.20f), RoundedCornerShape(16.dp)),
+        color = Panel,
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+            Text(
+                label,
+                color = accent,
+                fontSize = 9.sp,
+                letterSpacing = 2.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(Modifier.height(7.dp))
+            Text(
+                content,
+                color = Color(0xFFD9EAF2),
+                fontSize = 14.sp,
+                lineHeight = 21.sp
+            )
+        }
     }
 }
