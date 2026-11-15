@@ -173,9 +173,6 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
                 val name = facts.optString("nome")
                 speak(if (name.isNotBlank()) "Olá, $name. É bom continuar nossa conversa." else "Olá. Ainda estou conhecendo você. Como prefere que eu te chame?")
             }
-            normalized.contains("youtube") -> openApp("com.google.android.youtube", "YouTube")
-            normalized.contains("whatsapp") -> openApp("com.whatsapp", "WhatsApp")
-            normalized.contains("chrome") || normalized.contains("navegador") -> openApp("com.android.chrome", "Chrome")
             normalized.startsWith("pesquise") || normalized.startsWith("pesquisar") || normalized.startsWith("procure") -> {
                 val query = normalized.replaceFirst(Regex("^(pesquise|pesquisar|procure)\\\s*(por|sobre)?\\\s*"), "").trim()
                 if (query.isBlank()) speak("O que gostaria que eu pesquisasse?") else {
@@ -184,6 +181,10 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
                     startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url)))
                 }
             }
+            normalized.contains("youtube") -> openApp("com.google.android.youtube", "YouTube")
+            normalized.contains("whatsapp") -> openApp("com.whatsapp", "WhatsApp")
+            normalized.contains("chrome") || normalized.contains("navegador") -> openApp("com.android.chrome", "Chrome")
+
             else -> {
                 val name = facts.optString("nome").takeIf { it.isNotBlank() }?.let { "$it, " }.orEmpty()
                 val interest = facts.optString("gosta")
