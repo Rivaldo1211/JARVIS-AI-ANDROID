@@ -1,0 +1,30 @@
+name: Check JARVIS backend
+
+on:
+  push:
+    paths:
+      - "jarvis-backend/**"
+      - ".github/workflows/jarvis-backend-check.yml"
+  pull_request:
+    paths:
+      - "jarvis-backend/**"
+      - ".github/workflows/jarvis-backend-check.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install backend dependencies
+        run: pip install -r jarvis-backend/requirements.txt
+      - name: Compile Python files
+        run: python -m compileall -q jarvis-backend
