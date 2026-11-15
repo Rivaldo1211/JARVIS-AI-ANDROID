@@ -17,7 +17,7 @@ android {
         buildConfigField(
             "String",
             "JARVIS_API_URL",
-            "\"\u0024{providers.gradleProperty("JARVIS_API_URL").orElse("").get()}\""
+            "\"${providers.gradleProperty("JARVIS_API_URL").orElse("").get()}\""
         )
     }
 
@@ -26,9 +26,7 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
+    kotlinOptions { jvmTarget = "17" }
 
     buildFeatures {
         compose = true
