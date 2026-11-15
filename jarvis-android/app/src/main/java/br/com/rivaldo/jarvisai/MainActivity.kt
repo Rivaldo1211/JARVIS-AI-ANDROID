@@ -320,7 +320,7 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
                                             fontWeight = FontWeight.Bold
                                         )
                                     }
-                                    Text("CORE  /  V0.4", color = Muted, fontSize = 9.sp)
+                                    Text("CORE  /  V0.6", color = Muted, fontSize = 9.sp)
                                 }
                             }
 
@@ -544,9 +544,6 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
             }
         }
 
-        if (wakeModeEnabled && checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-            startWakeWordService()
-        }
         if (intent.getBooleanExtra(EXTRA_START_LISTENING, false) &&
             checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
         ) {
@@ -564,6 +561,9 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
                 registerReceiver(wakeReceiver, filter)
             }
             wakeReceiverRegistered = true
+        }
+        if (wakeModeEnabled && checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+            startWakeWordService()
         }
     }
 
