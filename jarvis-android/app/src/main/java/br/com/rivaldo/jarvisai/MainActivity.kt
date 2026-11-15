@@ -229,6 +229,12 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
                 }
             }
 
+            val notificationPermissionLauncher = rememberLauncherForActivityResult(
+                ActivityResultContracts.RequestPermission()
+            ) { granted ->
+                if (granted) enableWakeWordMode()
+                else answer = "Permita notificações para acompanhar quando a escuta estiver ativa."
+            }
             val wakeMicrophonePermissionLauncher = rememberLauncherForActivityResult(
                 ActivityResultContracts.RequestPermission()
             ) { granted ->
@@ -237,12 +243,6 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
                         notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                     } else enableWakeWordMode()
                 } else answer = "O microfone é necessário para detectar a palavra Jarvis."
-            }
-            val notificationPermissionLauncher = rememberLauncherForActivityResult(
-                ActivityResultContracts.RequestPermission()
-            ) { granted ->
-                if (granted) enableWakeWordMode()
-                else answer = "Permita notificações para acompanhar quando a escuta estiver ativa."
             }
 
             val transition = rememberInfiniteTransition(label = "jarvis-hud")
@@ -542,6 +542,16 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
                     }
                 }
             }
+        }
+    }
+
+        if (wakeModeEnabled && checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+            startWakeWordService()
+        }
+        if (intent.getBooleanExtra(EXTRA_START_LISTENING, false) &&
+            checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+        ) {
+            startListening()
         }
     }
 
