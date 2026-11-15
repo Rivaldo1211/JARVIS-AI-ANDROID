@@ -174,7 +174,7 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
                 speak(if (name.isNotBlank()) "Olá, $name. É bom continuar nossa conversa." else "Olá. Ainda estou conhecendo você. Como prefere que eu te chame?")
             }
             normalized.startsWith("pesquise") || normalized.startsWith("pesquisar") || normalized.startsWith("procure") -> {
-                val query = normalized.replaceFirst(Regex("^(pesquise|pesquisar|procure)\\\s*(por|sobre)?\\\s*"), "").trim()
+                val query = normalized.replaceFirst(Regex("""^(pesquise|pesquisar|procure)\s*(por|sobre)?\s*"""), "").trim()
                 if (query.isBlank()) speak("O que gostaria que eu pesquisasse?") else {
                     speak("Vou pesquisar $query")
                     val url = "https://www.google.com/search?q=" + URLEncoder.encode(query, "UTF-8")
