@@ -39,6 +39,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.net.URLEncoder
+import java.net.HttpURLConnection
+import java.net.URL
+import org.json.JSONArray
+import org.json.JSONObject
 import java.util.Locale
 
 class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
@@ -48,6 +52,7 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
     private var transcript by mutableStateOf("Toque no botão e diga: Jarvis, abra o YouTube.")
     private var answer by mutableStateOf("Olá. Sou o JARVIS. Estou pronto para receber comandos.")
     private var listening by mutableStateOf(false)
+    private val conversationHistory = mutableListOf<Pair<String, String>>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -166,7 +171,7 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
                     listening = false
                     val phrase = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull().orEmpty()
                     transcript = phrase
-                    handleCommand(phrase)
+                    if (phrase.isNotBlank()) handleCommand(phrase) else speak("Não consegui entender. Pode repetir?")
                 }
                 override fun onPartialResults(partialResults: Bundle?) = Unit
                 override fun onEvent(eventType: Int, params: Bundle?) = Unit
@@ -211,8 +216,77 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
             }
             command.contains("que horas") -> speak("Você pode conferir o horário na barra superior do seu celular.")
             command.contains("olá") || command.contains("oi") || command.contains("jarvis") -> speak("Olá. Estou à disposição.")
-            else -> speak("Entendi: $raw. Nesta primeira versão consigo abrir alguns aplicativos e fazer pesquisas na internet. A conversa com inteligência artificial será integrada na próxima etapa.")
+            else -> askJarvis(raw)
         }
+    }
+
+    private fun askJarvis(message: String) {
+        val baseUrl = BuildConfig.JARVIS_API_URL.trim().trimEnd('/')
+        if (baseUrl.isBlank()) {
+            speak("A inteligência artificial está preparada, mas falta publicar o servidor e configurar o endereço da API.")
+            return
+        }
+
+        status = "Consultando o Gemini..."
+        answer = "Estou pensando..."
+        Thread {
+            var connection: HttpURLConnection? = null
+            try {
+                val historyJson = JSONArray()
+                conversationHistory.forEach { item ->
+                    historyJson.put(
+                        JSONObject()
+                            .put("role", item.first)
+                            .put("content", item.second)
+                    )
+                }
+
+                val requestBody = JSONObject()
+                    .put("message", message)
+                    .put("history", historyJson)
+                    .toString()
+
+                connection = (URL("$baseUrl/v1/chat").openConnection() as HttpURLConnection).apply {
+                    requestMethod = "POST"
+                    connectTimeout = 15000
+                    readTimeout = 45000
+                    doOutput = true
+                    setRequestProperty("Content-Type", "application/json; charset=utf-8")
+                }
+
+                connection.outputStream.use { output ->
+                    output.write(requestBody.toByteArray(Charsets.UTF_8))
+                }
+
+                val statusCode = connection.responseCode
+                val responseStream = if (statusCode in 200..299) {
+                    connection.inputStream
+                } else {
+                    connection.errorStream
+                }
+                val responseText = responseStream?.bufferedReader()?.use { it.readText() }.orEmpty()
+                if (statusCode !in 200..299) {
+                    throw IllegalStateException("Servidor respondeu HTTP $statusCode")
+                }
+
+                val reply = JSONObject(responseText).optString("reply").trim()
+                if (reply.isBlank()) throw IllegalStateException("Resposta vazia")
+
+                conversationHistory.add("user" to message)
+                conversationHistory.add("assistant" to reply)
+                while (conversationHistory.size > 12) {
+                    conversationHistory.removeAt(0)
+                }
+
+                runOnUiThread { speak(reply) }
+            } catch (_: Exception) {
+                runOnUiThread {
+                    speak("Não consegui acessar o servidor de inteligência artificial. Confira sua conexão e tente novamente.")
+                }
+            } finally {
+                connection?.disconnect()
+            }
+        }.start()
     }
 
     private fun openApp(packageName: String, label: String) {
