@@ -57,9 +57,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.net.URLEncoder
-import java.net.HttpURLConnection
-import java.net.URL
-import org.json.JSONArray
 import org.json.JSONObject
 import java.util.Locale
 
