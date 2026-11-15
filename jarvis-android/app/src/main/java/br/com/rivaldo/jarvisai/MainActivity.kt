@@ -460,6 +460,23 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
                                     fontSize = 12.sp
                                 )
                             }
+                            Spacer(Modifier.height(10.dp))
+                            androidx.compose.material3.OutlinedButton(
+                                onClick = { openTtsSettings() },
+                                modifier = Modifier.fillMaxWidth().height(52.dp),
+                                shape = RoundedCornerShape(16.dp),
+                                colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
+                                    contentColor = Ice
+                                ),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x665B9DB4))
+                            ) {
+                                Text(
+                                    "AJUSTAR VOZ DO ASSISTENTE",
+                                    fontWeight = FontWeight.SemiBold,
+                                    letterSpacing = 1.2.sp,
+                                    fontSize = 11.sp
+                                )
+                            }
                             Spacer(Modifier.height(14.dp))
                             Text(
                                 "VOICE INTERFACE  •  SECURE CONNECTION  •  PERSONAL AI",
@@ -568,6 +585,17 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
     private fun openSettings() {
         speak("Abrindo configurações.")
         startActivity(Intent(android.provider.Settings.ACTION_SETTINGS))
+    }
+
+    private fun openTtsSettings() {
+        val intent = Intent("com.android.settings.TTS_SETTINGS")
+        if (intent.resolveActivity(packageManager) != null) {
+            startActivity(intent)
+        } else {
+            startActivity(Intent(android.provider.Settings.ACTION_SETTINGS))
+        }
+        status = "CONFIGURAÇÃO DE VOZ DO ANDROID"
+        answer = "Nas configurações de conversão de texto em voz, escolha outro mecanismo ou baixe uma voz em português. A voz disponível depende do mecanismo instalado."
     }
 
     private fun speak(message: String) {
