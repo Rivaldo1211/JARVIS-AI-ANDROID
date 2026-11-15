@@ -102,3 +102,13 @@ O artefato é um APK debug. Se houver incompatibilidade de assinatura ao atualiz
 ---
 
 Para a visão geral do projeto, consulte o [README principal](../README.md).
+
+## Ativação automática por palavra-chave — 0.6.0
+
+- SDK: Porcupine Android 4.0.2.
+- Palavra-chave integrada: JARVIS.
+- Serviço em primeiro plano do tipo microphone, com notificação persistente.
+- A chave `PICOVOICE_ACCESS_KEY` deve ser cadastrada como GitHub Actions secret; ela não é armazenada no repositório.
+- Ative pelo botão **ATIVAR CHAMADA: JARVIS** com o aplicativo aberto e as permissões de microfone/notificações concedidas.
+- A detecção de palavra-chave é local após inicialização/licenciamento do SDK. O reconhecimento do comando depois da chamada continua usando o reconhecedor de fala configurado no Android.
+- Limitação: quando o app não está visível, o Android pode impedir que a atividade seja aberta automaticamente; nesse caso o JARVIS publica uma notificação para continuar. HyperOS também pode encerrar o serviço por economia de bateria.
