@@ -25,7 +25,18 @@ android {
         jvmTarget = "17"
     }
 
-    buildFeatures { compose = true }
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
+
+    defaultConfig {
+        buildConfigField(
+            "String",
+            "JARVIS_API_URL",
+            "\"\u0024{providers.gradleProperty("JARVIS_API_URL").orElse("").get()}\""
+        )
+    }
     packaging { resources.excludes += "/META-INF/{AL2.0,LGPL2.1}" }
 }
 
