@@ -1,9 +1,12 @@
 package br.com.rivaldo.jarvisai
 
 import android.Manifest
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.os.Build
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
@@ -74,6 +77,17 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
     private var transcript by mutableStateOf("Aguardando comando de voz...")
     private var answer by mutableStateOf("Sistemas em espera. Como posso ajudar?")
     private var listening by mutableStateOf(false)
+    private var wakeModeEnabled by mutableStateOf(false)
+    private var wakeReceiverRegistered = false
+    private val wakeReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == WakeWordService.ACTION_WAKE_DETECTED && wakeModeEnabled) {
+                status = "PALAVRA-CHAVE DETECTADA"
+                answer = "Estou ouvindo. Pode falar seu comando."
+                startListening()
+            }
+        }
+    }
     // Memória persistente local: não envia perfil nem conversas para servidores.
     private val memoryStore by lazy { getSharedPreferences("jarvis_personal_memory", MODE_PRIVATE) }
 
@@ -197,6 +211,7 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         tts = TextToSpeech(this, this)
+        wakeModeEnabled = getSharedPreferences("jarvis_wake_settings", MODE_PRIVATE).getBoolean("wake_enabled", false)
         status = if (SpeechRecognizer.isRecognitionAvailable(this)) {
             "SISTEMAS ONLINE"
         } else {
@@ -212,6 +227,22 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
                     status = "ACESSO AO MICROFONE NEGADO"
                     answer = "Preciso da permissão do microfone para ouvir seus comandos."
                 }
+            }
+
+            val wakeMicrophonePermissionLauncher = rememberLauncherForActivityResult(
+                ActivityResultContracts.RequestPermission()
+            ) { granted ->
+                if (granted) {
+                    if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    } else enableWakeWordMode()
+                } else answer = "O microfone é necessário para detectar a palavra Jarvis."
+            }
+            val notificationPermissionLauncher = rememberLauncherForActivityResult(
+                ActivityResultContracts.RequestPermission()
+            ) { granted ->
+                if (granted) enableWakeWordMode()
+                else answer = "Permita notificações para acompanhar quando a escuta estiver ativa."
             }
 
             val transition = rememberInfiniteTransition(label = "jarvis-hud")
@@ -462,6 +493,28 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
                             }
                             Spacer(Modifier.height(10.dp))
                             androidx.compose.material3.OutlinedButton(
+                                onClick = {
+                                    if (wakeModeEnabled) stopWakeWordMode()
+                                    else if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                                        if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                                            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                        } else enableWakeWordMode()
+                                    } else wakeMicrophonePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                                },
+                                modifier = Modifier.fillMaxWidth().height(52.dp),
+                                shape = RoundedCornerShape(16.dp),
+                                colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(contentColor = if (wakeModeEnabled) Gold else Cyan),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x665B9DB4))
+                            ) {
+                                Text(
+                                    if (wakeModeEnabled) "DESATIVAR ATIVAÇÃO POR VOZ" else "ATIVAR CHAMADA: JARVIS",
+                                    fontWeight = FontWeight.SemiBold,
+                                    letterSpacing = 1.2.sp,
+                                    fontSize = 11.sp
+                                )
+                            }
+                            Spacer(Modifier.height(10.dp))
+                            androidx.compose.material3.OutlinedButton(
                                 onClick = { openTtsSettings() },
                                 modifier = Modifier.fillMaxWidth().height(52.dp),
                                 shape = RoundedCornerShape(16.dp),
@@ -491,6 +544,66 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
             }
         }
     }
+
+    override fun onStart() {
+        super.onStart()
+        if (!wakeReceiverRegistered) {
+            val filter = android.content.IntentFilter(WakeWordService.ACTION_WAKE_DETECTED)
+            if (Build.VERSION.SDK_INT >= 33) registerReceiver(wakeReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+            else {
+                @Suppress("DEPRECATION")
+                registerReceiver(wakeReceiver, filter)
+            }
+            wakeReceiverRegistered = true
+        }
+    }
+
+    override fun onStop() {
+        if (wakeReceiverRegistered) {
+            unregisterReceiver(wakeReceiver)
+            wakeReceiverRegistered = false
+        }
+        super.onStop()
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (intent.getBooleanExtra(EXTRA_START_LISTENING, false)) {
+            wakeModeEnabled = true
+            getSharedPreferences("jarvis_wake_settings", MODE_PRIVATE).edit().putBoolean("wake_enabled", true).apply()
+            if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) startListening()
+        }
+    }
+
+    private fun enableWakeWordMode() {
+        wakeModeEnabled = true
+        getSharedPreferences("jarvis_wake_settings", MODE_PRIVATE).edit().putBoolean("wake_enabled", true).apply()
+        startWakeWordService()
+        status = "DETECÇÃO DA PALAVRA JARVIS ATIVADA"
+        answer = "A escuta ficará ativa com uma notificação permanente. Diga 'Jarvis' para me chamar."
+    }
+
+    private fun startWakeWordService() {
+        val serviceIntent = Intent(this, WakeWordService::class.java).setAction(WakeWordService.ACTION_START)
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(serviceIntent) else startService(serviceIntent)
+        } catch (error: Exception) {
+            status = "NÃO FOI POSSÍVEL INICIAR A ESCUTA"
+            answer = error.message ?: "Verifique as permissões de microfone e notificações."
+            wakeModeEnabled = false
+        }
+    }
+
+    private fun stopWakeWordMode() {
+        stopService(Intent(this, WakeWordService::class.java))
+        wakeModeEnabled = false
+        getSharedPreferences("jarvis_wake_settings", MODE_PRIVATE).edit().putBoolean("wake_enabled", false).apply()
+        status = "ATIVAÇÃO POR VOZ DESATIVADA"
+        answer = "A escuta automática foi desligada."
+    }
+
+    companion object { const val EXTRA_START_LISTENING = "start_listening_after_wake" }
 
     override fun onInit(result: Int) {
         if (result == TextToSpeech.SUCCESS) {
@@ -553,6 +666,7 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
                     listening = false
                     val phrase = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull().orEmpty()
                     transcript = phrase
+                    if (wakeModeEnabled) startWakeWordService()
                     if (phrase.isNotBlank()) handleCommand(phrase) else speak("Não consegui entender. Pode repetir?")
                 }
                 override fun onPartialResults(partialResults: Bundle?) = Unit
