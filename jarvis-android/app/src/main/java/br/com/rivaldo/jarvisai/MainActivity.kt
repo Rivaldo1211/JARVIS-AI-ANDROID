@@ -215,7 +215,7 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
                 }
             }
             command.contains("que horas") -> speak("Você pode conferir o horário na barra superior do seu celular.")
-            command.contains("olá") || command.contains("oi") || command.contains("jarvis") -> speak("Olá. Estou à disposição.")
+            command == "olá" || command == "oi" || command == "jarvis" || command == "olá jarvis" || command == "oi jarvis" -> speak("Olá. Estou à disposição.")
             else -> askJarvis(raw)
         }
     }
