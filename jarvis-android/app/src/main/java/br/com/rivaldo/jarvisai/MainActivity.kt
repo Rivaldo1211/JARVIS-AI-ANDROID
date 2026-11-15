@@ -101,13 +101,13 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
 
     private fun learnFromMessage(message: String): String? {
         val patterns = listOf(
-            "nome" to Regex("""(?:meu nome é|me chamo|pode me chamar de)\\s+(.{2,60})""", RegexOption.IGNORE_CASE),
-            "gosta" to Regex("""(?:eu gosto de|adoro|tenho interesse em)\\s+(.{2,100})""", RegexOption.IGNORE_CASE),
-            "prefere" to Regex("""(?:eu prefiro|prefiro)\\s+(.{2,100})""", RegexOption.IGNORE_CASE),
-            "trabalho" to Regex("""(?:eu trabalho com|trabalho na área de|minha profissão é)\\s+(.{2,100})""", RegexOption.IGNORE_CASE),
-            "objetivo" to Regex("""(?:meu objetivo é|quero alcançar|estou buscando)\\s+(.{2,120})""", RegexOption.IGNORE_CASE),
-            "cidade" to Regex("""(?:moro em|sou de)\\s+(.{2,80})""", RegexOption.IGNORE_CASE),
-            "estilo" to Regex("""(?:gosto de respostas|prefiro respostas)\\s+(.{2,100})""", RegexOption.IGNORE_CASE)
+            "nome" to Regex("""(?:meu nome é|me chamo|pode me chamar de)\s+(.{2,60})""", RegexOption.IGNORE_CASE),
+            "gosta" to Regex("""(?:eu gosto de|adoro|tenho interesse em)\s+(.{2,100})""", RegexOption.IGNORE_CASE),
+            "prefere" to Regex("""(?:eu prefiro|prefiro)\s+(.{2,100})""", RegexOption.IGNORE_CASE),
+            "trabalho" to Regex("""(?:eu trabalho com|trabalho na área de|minha profissão é)\s+(.{2,100})""", RegexOption.IGNORE_CASE),
+            "objetivo" to Regex("""(?:meu objetivo é|quero alcançar|estou buscando)\s+(.{2,120})""", RegexOption.IGNORE_CASE),
+            "cidade" to Regex("""(?:moro em|sou de)\s+(.{2,80})""", RegexOption.IGNORE_CASE),
+            "estilo" to Regex("""(?:gosto de respostas|prefiro respostas)\s+(.{2,100})""", RegexOption.IGNORE_CASE)
         )
         for ((key, regex) in patterns) {
             val match = regex.find(message) ?: continue
@@ -177,7 +177,7 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
             normalized.contains("whatsapp") -> openApp("com.whatsapp", "WhatsApp")
             normalized.contains("chrome") || normalized.contains("navegador") -> openApp("com.android.chrome", "Chrome")
             normalized.startsWith("pesquise") || normalized.startsWith("pesquisar") || normalized.startsWith("procure") -> {
-                val query = normalized.replaceFirst(Regex("^(pesquise|pesquisar|procure)\\\\s*(por|sobre)?\\\\s*"), "").trim()
+                val query = normalized.replaceFirst(Regex("^(pesquise|pesquisar|procure)\\\s*(por|sobre)?\\\s*"), "").trim()
                 if (query.isBlank()) speak("O que gostaria que eu pesquisasse?") else {
                     speak("Vou pesquisar $query")
                     val url = "https://www.google.com/search?q=" + URLEncoder.encode(query, "UTF-8")
