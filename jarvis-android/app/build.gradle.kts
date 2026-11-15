@@ -12,8 +12,13 @@ android {
         applicationId = "br.com.rivaldo.jarvisai"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.2.0"
+        buildConfigField(
+            "String",
+            "JARVIS_API_URL",
+            "\"\u0024{providers.gradleProperty("JARVIS_API_URL").orElse("").get()}\""
+        )
     }
 
     compileOptions {
@@ -30,13 +35,6 @@ android {
         buildConfig = true
     }
 
-    defaultConfig {
-        buildConfigField(
-            "String",
-            "JARVIS_API_URL",
-            "\"\u0024{providers.gradleProperty("JARVIS_API_URL").orElse("").get()}\""
-        )
-    }
     packaging { resources.excludes += "/META-INF/{AL2.0,LGPL2.1}" }
 }
 
