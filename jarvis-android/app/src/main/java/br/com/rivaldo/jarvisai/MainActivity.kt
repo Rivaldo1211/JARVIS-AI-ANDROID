@@ -77,7 +77,124 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
     private var transcript by mutableStateOf("Aguardando comando de voz...")
     private var answer by mutableStateOf("Sistemas em espera. Como posso ajudar?")
     private var listening by mutableStateOf(false)
-    private val conversationHistory = mutableListOf<Pair<String, String>>()
+    // Memória persistente local: não envia perfil nem conversas para servidores.
+    private val memoryStore by lazy { getSharedPreferences("jarvis_personal_memory", MODE_PRIVATE) }
+
+    private fun loadFacts(): JSONObject =
+        try { JSONObject(memoryStore.getString("facts", "{}") ?: "{}") } catch (_: Exception) { JSONObject() }
+
+    private fun saveFact(key: String, value: String) {
+        val facts = loadFacts()
+        facts.put(key, value)
+        memoryStore.edit().putString("facts", facts.toString()).apply()
+    }
+
+    private fun profileSummary(): String {
+        val facts = loadFacts()
+        if (facts.length() == 0) return "Ainda estou construindo seu perfil. Você pode me contar seu nome, preferências, interesses e objetivos."
+        val labels = linkedMapOf(
+            "nome" to "Nome", "gosta" to "Interesses", "prefere" to "Preferência",
+            "trabalho" to "Trabalho", "objetivo" to "Objetivo", "cidade" to "Localidade",
+            "estilo" to "Estilo de conversa"
+        )
+        return labels.entries.filter { facts.has(it.key) }
+            .joinToString(". ") { "${it.value}: ${facts.optString(it.key)}" }
+            .ifBlank { "Ainda não tenho informações suficientes para resumir seu perfil." }
+    }
+
+    private fun learnFromMessage(message: String): String? {
+        val patterns = listOf(
+            "nome" to Regex("""(?:meu nome é|me chamo|pode me chamar de)\\s+(.{2,60})""", RegexOption.IGNORE_CASE),
+            "gosta" to Regex("""(?:eu gosto de|adoro|tenho interesse em)\\s+(.{2,100})""", RegexOption.IGNORE_CASE),
+            "prefere" to Regex("""(?:eu prefiro|prefiro)\\s+(.{2,100})""", RegexOption.IGNORE_CASE),
+            "trabalho" to Regex("""(?:eu trabalho com|trabalho na área de|minha profissão é)\\s+(.{2,100})""", RegexOption.IGNORE_CASE),
+            "objetivo" to Regex("""(?:meu objetivo é|quero alcançar|estou buscando)\\s+(.{2,120})""", RegexOption.IGNORE_CASE),
+            "cidade" to Regex("""(?:moro em|sou de)\\s+(.{2,80})""", RegexOption.IGNORE_CASE),
+            "estilo" to Regex("""(?:gosto de respostas|prefiro respostas)\\s+(.{2,100})""", RegexOption.IGNORE_CASE)
+        )
+        for ((key, regex) in patterns) {
+            val match = regex.find(message) ?: continue
+            val value = match.groupValues[1].trim().trimEnd('.', '!', '?')
+            if (value.isNotBlank()) {
+                saveFact(key, value)
+                val label = when (key) {
+                    "nome" -> "seu nome"
+                    "gosta" -> "seus interesses"
+                    "prefere" -> "sua preferência"
+                    "trabalho" -> "sua área de trabalho"
+                    "objetivo" -> "seu objetivo"
+                    "cidade" -> "sua localidade"
+                    else -> "seu estilo de conversa"
+                }
+                return "Entendido. Vou guardar essa informação sobre $label neste aparelho."
+            }
+        }
+        return null
+    }
+
+    private fun localIntelligence(message: String) {
+        val normalized = message.lowercase(Locale("pt", "BR")).trim()
+        val facts = loadFacts()
+        val learned = learnFromMessage(message)
+        if (learned != null) { speak(learned); return }
+
+        when {
+            normalized.contains("o que você sabe sobre mim") ||
+                normalized.contains("meu perfil") ||
+                normalized.contains("o que sabe de mim") ->
+                speak(profileSummary())
+            normalized.contains("qual meu nome") || normalized.contains("como me chamo") -> {
+                val name = facts.optString("nome")
+                speak(if (name.isNotBlank()) "Seu nome é $name." else "Ainda não sei seu nome. Você pode dizer: meu nome é...")
+            }
+            normalized.contains("esqueça tudo") || normalized.contains("apague minha memória") -> {
+                memoryStore.edit().clear().apply()
+                speak("Minha memória pessoal local foi apagada.")
+            }
+            normalized.contains("esqueça meu nome") -> {
+                facts.remove("nome")
+                memoryStore.edit().putString("facts", facts.toString()).apply()
+                speak("Apaguei essa informação da minha memória.")
+            }
+            normalized.startsWith("abra ") || normalized.startsWith("abrir ") -> {
+                val target = normalized.removePrefix("abra ").removePrefix("abrir ").trim()
+                when {
+                    target.contains("configura") -> openSettings()
+                    target.contains("youtube") -> openApp("com.google.android.youtube", "YouTube")
+                    target.contains("whatsapp") -> openApp("com.whatsapp", "WhatsApp")
+                    target.contains("chrome") || target.contains("internet") -> openApp("com.android.chrome", "Chrome")
+                    else -> speak("Ainda não tenho o atalho para $target.")
+                }
+            }
+            normalized.contains("que horas") ->
+                speak("Você pode conferir o horário na barra superior do seu celular.")
+            normalized.contains("obrigado") || normalized.contains("obrigada") ->
+                speak("À disposição. Estou aprendendo suas preferências para tornar nossas próximas conversas mais naturais.")
+            normalized == "oi" || normalized == "olá" || normalized == "bom dia" ||
+                normalized == "boa tarde" || normalized == "boa noite" ||
+                normalized == "jarvis" || normalized == "oi jarvis" || normalized == "olá jarvis" -> {
+                val name = facts.optString("nome")
+                speak(if (name.isNotBlank()) "Olá, $name. É bom continuar nossa conversa." else "Olá. Ainda estou conhecendo você. Como prefere que eu te chame?")
+            }
+            normalized.contains("youtube") -> openApp("com.google.android.youtube", "YouTube")
+            normalized.contains("whatsapp") -> openApp("com.whatsapp", "WhatsApp")
+            normalized.contains("chrome") || normalized.contains("navegador") -> openApp("com.android.chrome", "Chrome")
+            normalized.startsWith("pesquise") || normalized.startsWith("pesquisar") || normalized.startsWith("procure") -> {
+                val query = normalized.replaceFirst(Regex("^(pesquise|pesquisar|procure)\\\\s*(por|sobre)?\\\\s*"), "").trim()
+                if (query.isBlank()) speak("O que gostaria que eu pesquisasse?") else {
+                    speak("Vou pesquisar $query")
+                    val url = "https://www.google.com/search?q=" + URLEncoder.encode(query, "UTF-8")
+                    startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url)))
+                }
+            }
+            else -> {
+                val name = facts.optString("nome").takeIf { it.isNotBlank() }?.let { "$it, " }.orEmpty()
+                val interest = facts.optString("gosta")
+                val context = if (interest.isNotBlank()) " Sei que você tem interesse em $interest." else ""
+                speak("${name}Ainda não tenho um mecanismo de raciocínio generativo instalado neste aparelho. Posso aprender fatos e preferências que você me contar, lembrar seu perfil e executar comandos locais.$context Para melhorar, conte algo sobre você ou diga 'o que você sabe sobre mim'.")
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -174,7 +291,7 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
                                             fontWeight = FontWeight.Bold
                                         )
                                     }
-                                    Text("CORE  /  V0.3", color = Muted, fontSize = 9.sp)
+                                    Text("CORE  /  V0.4", color = Muted, fontSize = 9.sp)
                                 }
                             }
 
@@ -437,98 +554,7 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
     }
 
     private fun handleCommand(raw: String) {
-        val command = raw.lowercase(Locale("pt", "BR")).trim()
-        when {
-            command.contains("youtube") -> openApp("com.google.android.youtube", "YouTube")
-            command.contains("whatsapp") -> openApp("com.whatsapp", "WhatsApp")
-            command.contains("chrome") || command.contains("navegador") -> openApp("com.android.chrome", "Chrome")
-            command.startsWith("pesquise") || command.startsWith("pesquisar") || command.startsWith("procure") -> {
-                val query = command
-                    .removePrefix("pesquise").removePrefix("pesquisar").removePrefix("procure")
-                    .replaceFirst(Regex("^\\s+(por|sobre)\\s+"), "").trim()
-                if (query.isBlank()) {
-                    speak("O que você gostaria que eu pesquisasse?")
-                } else {
-                    speak("Vou pesquisar $query")
-                    val url = "https://www.google.com/search?q=" + URLEncoder.encode(query, "UTF-8")
-                    startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url)))
-                }
-            }
-            command.startsWith("abra ") || command.startsWith("abrir ") -> {
-                val target = command.removePrefix("abra ").removePrefix("abrir ").trim()
-                when {
-                    target.contains("configura") -> openSettings()
-                    target.contains("youtube") -> openApp("com.google.android.youtube", "YouTube")
-                    target.contains("whatsapp") -> openApp("com.whatsapp", "WhatsApp")
-                    target.contains("chrome") || target.contains("internet") -> openApp("com.android.chrome", "Chrome")
-                    else -> speak("Ainda não tenho o atalho para $target. Vou adicionar mais aplicativos nas próximas versões.")
-                }
-            }
-            command.contains("que horas") -> speak("Você pode conferir o horário na barra superior do seu celular.")
-            command == "olá" || command == "oi" || command == "jarvis" || command == "olá jarvis" || command == "oi jarvis" -> speak("Olá. Estou à disposição.")
-            else -> askJarvis(raw)
-        }
-    }
-
-    private fun askJarvis(message: String) {
-        val baseUrl = BuildConfig.JARVIS_API_URL.trim().trimEnd('/')
-        if (baseUrl.isBlank()) {
-            speak("A inteligência artificial está preparada, mas falta publicar o servidor e configurar o endereço da API.")
-            return
-        }
-
-        status = "CONSULTANDO INTELIGÊNCIA ARTIFICIAL"
-        answer = "Processando sua solicitação..."
-        Thread {
-            var connection: HttpURLConnection? = null
-            try {
-                val historyJson = JSONArray()
-                conversationHistory.forEach { item ->
-                    historyJson.put(
-                        JSONObject()
-                            .put("role", item.first)
-                            .put("content", item.second)
-                    )
-                }
-
-                val requestBody = JSONObject()
-                    .put("message", message)
-                    .put("history", historyJson)
-                    .toString()
-
-                connection = (URL("$baseUrl/v1/chat").openConnection() as HttpURLConnection).apply {
-                    requestMethod = "POST"
-                    connectTimeout = 15000
-                    readTimeout = 45000
-                    doOutput = true
-                    setRequestProperty("Content-Type", "application/json; charset=utf-8")
-                }
-
-                connection.outputStream.use { output ->
-                    output.write(requestBody.toByteArray(Charsets.UTF_8))
-                }
-
-                val statusCode = connection.responseCode
-                val responseStream = if (statusCode in 200..299) connection.inputStream else connection.errorStream
-                val responseText = responseStream?.bufferedReader()?.use { it.readText() }.orEmpty()
-                if (statusCode !in 200..299) throw IllegalStateException("HTTP $statusCode")
-
-                val reply = JSONObject(responseText).optString("reply").trim()
-                if (reply.isBlank()) throw IllegalStateException("Resposta vazia")
-
-                conversationHistory.add("user" to message)
-                conversationHistory.add("assistant" to reply)
-                while (conversationHistory.size > 12) conversationHistory.removeAt(0)
-
-                runOnUiThread { speak(reply) }
-            } catch (_: Exception) {
-                runOnUiThread {
-                    speak("Não consegui acessar o servidor de inteligência artificial. Confira sua conexão e tente novamente.")
-                }
-            } finally {
-                connection?.disconnect()
-            }
-        }.start()
+        localIntelligence(raw)
     }
 
     private fun openApp(packageName: String, label: String) {
