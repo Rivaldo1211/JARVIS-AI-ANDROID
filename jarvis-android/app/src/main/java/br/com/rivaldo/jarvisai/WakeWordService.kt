@@ -1,8 +1,5 @@
 package br.com.rivaldo.jarvisai
 
-import ai.picovoice.porcupine.Porcupine
-import ai.picovoice.porcupine.PorcupineException
-import ai.picovoice.porcupine.PorcupineManager
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -12,9 +9,11 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
+import android.util.Log
+import com.openwakeword.OpenWakeWord
 
 class WakeWordService : Service() {
-    private var porcupineManager: PorcupineManager? = null
+    private var wakeDetector: OpenWakeWord? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -28,34 +27,33 @@ class WakeWordService : Service() {
             return START_NOT_STICKY
         }
 
-        val notification = buildNotification("JARVIS está em escuta. Diga: Jarvis.", NOTIFICATION_ID)
+        val notification = buildNotification(
+            "JARVIS está em escuta. Diga: Hey Jarvis.",
+            NOTIFICATION_ID
+        )
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE)
         } else {
             startForeground(NOTIFICATION_ID, notification)
         }
 
-        val accessKey = BuildConfig.PICOVOICE_ACCESS_KEY
-        if (accessKey.isBlank()) {
-            showStatusNotification("Falta configurar PICOVOICE_ACCESS_KEY nos Secrets do GitHub. Detector não iniciado.")
-            stopSelf()
-            return START_NOT_STICKY
-        }
-
-        if (porcupineManager == null) {
+        if (wakeDetector == null) {
             try {
-                porcupineManager = PorcupineManager.Builder()
-                    .setAccessKey(accessKey)
-                    .setKeyword(Porcupine.BuiltInKeyword.JARVIS)
-                    .build(this) { onWakeWordDetected() }
-                porcupineManager?.start()
-            } catch (error: PorcupineException) {
-                showStatusNotification("Falha no detector: ${error.message ?: "erro do Porcupine"}")
-                stopDetector()
-                stopSelf()
-                return START_NOT_STICKY
+                wakeDetector = OpenWakeWord.Builder(this)
+                    .setModel(OpenWakeWord.BuiltInModel.HEY_JARVIS)
+                    .setThreshold(0.5f)
+                    .setDebounceMs(2500)
+                    .build()
+
+                wakeDetector?.start { score ->
+                    Log.i(TAG, "Wake word detectada. Score=$score")
+                    onWakeWordDetected()
+                }
             } catch (error: Exception) {
-                showStatusNotification("Falha ao ativar a escuta: ${error.message ?: "erro inesperado"}")
+                Log.e(TAG, "Não foi possível iniciar o openWakeWord", error)
+                showStatusNotification(
+                    "Falha ao iniciar a ativação por voz: ${error.message ?: "erro inesperado"}"
+                )
                 stopDetector()
                 stopSelf()
                 return START_NOT_STICKY
@@ -67,7 +65,7 @@ class WakeWordService : Service() {
     private fun onWakeWordDetected() {
         stopDetector()
         val notification = buildNotification(
-            "JARVIS ouviu a palavra-chave. Toque para falar com o assistente.",
+            "JARVIS ouviu Hey Jarvis. Toque para falar com o assistente.",
             WAKE_NOTIFICATION_ID,
             openAssistant = true
         )
@@ -117,16 +115,20 @@ class WakeWordService : Service() {
                 "Ativação por voz do JARVIS",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Indica quando a detecção da palavra Jarvis está ativa."
+                description = "Indica quando a detecção da palavra de ativação está ligada."
             }
             getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
         }
     }
 
     private fun stopDetector() {
-        try { porcupineManager?.stop() } catch (_: Exception) { }
-        try { porcupineManager?.delete() } catch (_: Exception) { }
-        porcupineManager = null
+        try { wakeDetector?.stop() } catch (error: Exception) {
+            Log.w(TAG, "Erro ao parar detector", error)
+        }
+        try { wakeDetector?.release() } catch (error: Exception) {
+            Log.w(TAG, "Erro ao liberar detector", error)
+        }
+        wakeDetector = null
     }
 
     override fun onDestroy() {
@@ -137,6 +139,7 @@ class WakeWordService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     companion object {
+        private const val TAG = "JarvisWakeWord"
         const val ACTION_START = "br.com.rivaldo.jarvisai.action.START_WAKE"
         const val ACTION_STOP = "br.com.rivaldo.jarvisai.action.STOP_WAKE"
         const val ACTION_WAKE_DETECTED = "br.com.rivaldo.jarvisai.action.WAKE_DETECTED"
