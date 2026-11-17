@@ -177,6 +177,12 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
                     else -> speak("Ainda não tenho o atalho para $target.")
                 }
             }
+            normalized.contains("ler a tela") || normalized.contains("leia a tela") ||
+                normalized.contains("o que está aparecendo") || normalized.contains("o que aparece na tela") -> {
+                sendBroadcast(Intent(JarvisScreenReaderService.ACTION_READ_SCREEN).setPackage(packageName))
+                speak("Vou tentar ler o conteúdo visível. Se a leitura de tela ainda não estiver ativada, habilite o serviço de acessibilidade do JARVIS nas configurações.")
+            }
+            normalized.contains("ativar leitura de tela") || normalized.contains("ativar leitor de tela") -> openAccessibilitySettings()
             normalized.contains("que horas") ->
                 speak("Você pode conferir o horário na barra superior do seu celular.")
             normalized.contains("obrigado") || normalized.contains("obrigada") ->
@@ -188,22 +194,26 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
                 speak(if (name.isNotBlank()) "Olá, $name. É bom continuar nossa conversa." else "Olá. Ainda estou conhecendo você. Como prefere que eu te chame?")
             }
             normalized.startsWith("pesquise") || normalized.startsWith("pesquisar") || normalized.startsWith("procure") -> {
-                val query = normalized.replaceFirst(Regex("""^(pesquise|pesquisar|procure)\s*(por|sobre)?\s*"""), "").trim()
+                val query = messageForSearch(message)
                 if (query.isBlank()) speak("O que gostaria que eu pesquisasse?") else {
-                    speak("Vou pesquisar $query")
-                    val url = "https://www.google.com/search?q=" + URLEncoder.encode(query, "UTF-8")
-                    startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url)))
+                    launchSearch(query, normalized.contains("youtube"))
                 }
+            }
+            normalized.endsWith("?") || normalized.contains("joga hoje") ||
+                normalized.contains("joga amanhã") || normalized.contains("jogo hoje") ||
+                normalized.contains("vai jogar") || normalized.contains("placar") ||
+                normalized.contains("resultado do jogo") || normalized.contains("notícias sobre") -> {
+                val today = java.time.LocalDate.now().format(
+                    java.time.format.DateTimeFormatter.ofPattern("d 'de' MMMM 'de' yyyy", Locale("pt", "BR"))
+                )
+                launchSearch("$message (informações atualizadas em $today)", false)
             }
             normalized.contains("youtube") -> openApp("com.google.android.youtube", "YouTube")
             normalized.contains("whatsapp") -> openApp("com.whatsapp", "WhatsApp")
             normalized.contains("chrome") || normalized.contains("navegador") -> openApp("com.android.chrome", "Chrome")
 
             else -> {
-                val name = facts.optString("nome").takeIf { it.isNotBlank() }?.let { "$it, " }.orEmpty()
-                val interest = facts.optString("gosta")
-                val context = if (interest.isNotBlank()) " Sei que você tem interesse em $interest." else ""
-                speak("${name}Ainda não tenho um mecanismo de raciocínio generativo instalado neste aparelho. Posso aprender fatos e preferências que você me contar, lembrar seu perfil e executar comandos locais.$context Para melhorar, conte algo sobre você ou diga 'o que você sabe sobre mim'.")
+                launchSearch(message, false)
             }
         }
     }
@@ -531,6 +541,21 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
                                 )
                             }
                             Spacer(Modifier.height(14.dp))
+                            androidx.compose.material3.OutlinedButton(
+                                onClick = { openAccessibilitySettings() },
+                                modifier = Modifier.fillMaxWidth().height(52.dp),
+                                shape = RoundedCornerShape(16.dp),
+                                colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(contentColor = Ice),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x665B9DB4))
+                            ) {
+                                Text(
+                                    "ATIVAR LEITURA DE TELA",
+                                    fontWeight = FontWeight.SemiBold,
+                                    letterSpacing = 1.2.sp,
+                                    fontSize = 11.sp
+                                )
+                            }
+                            Spacer(Modifier.height(14.dp))
                             Text(
                                 "VOICE INTERFACE  •  SECURE CONNECTION  •  PERSONAL AI",
                                 color = Color(0xFF456176),
@@ -693,6 +718,36 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
 
     private fun handleCommand(raw: String) {
         localIntelligence(raw)
+    }
+
+    private fun messageForSearch(message: String): String {
+        return message.trim().replaceFirst(
+            Regex("""^(jarvis[, ]*)?(pesquise|pesquisar|procure)\s*(por|sobre|no youtube|no google)?\s*""", RegexOption.IGNORE_CASE),
+            ""
+        ).replace(Regex("""\s+no youtube$""", RegexOption.IGNORE_CASE), "").trim()
+    }
+
+    private fun launchSearch(query: String, youtube: Boolean) {
+        val prefs = getSharedPreferences(JarvisScreenReaderService.PREFS, MODE_PRIVATE)
+        prefs.edit().putBoolean(JarvisScreenReaderService.KEY_READ_NEXT, true).apply()
+        val encoded = URLEncoder.encode(query, "UTF-8")
+        val url = if (youtube) {
+            "https://www.youtube.com/results?search_query=$encoded"
+        } else {
+            "https://www.google.com/search?q=$encoded"
+        }
+        speak(if (youtube) "Pesquisando no YouTube: $query" else "Pesquisando no Google: $query. Vou ler os resultados quando a página carregar.")
+        try {
+            startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url)))
+        } catch (_: Exception) {
+            prefs.edit().putBoolean(JarvisScreenReaderService.KEY_READ_NEXT, false).apply()
+            speak("Não consegui abrir o navegador para fazer essa pesquisa.")
+        }
+    }
+
+    private fun openAccessibilitySettings() {
+        speak("Abrindo as configurações de acessibilidade. Encontre JARVIS AI e ative o serviço de leitura de tela.")
+        startActivity(Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS))
     }
 
     private fun openApp(packageName: String, label: String) {
