@@ -1,12 +1,12 @@
 # JARVIS Android — Documentação do aplicativo
 
-**Versão do código:** 0.4.0  
+**Versão do código:** 0.7.0  
 **Plataforma:** Android 8.0 (API 26) ou superior  
-**Tecnologias:** Kotlin, Jetpack Compose, Android SpeechRecognizer e Text-to-Speech
+**Tecnologias:** Kotlin, Jetpack Compose, Android SpeechRecognizer, Text-to-Speech, openWakeWord e ONNX Runtime
 
 ## 1. Visão geral
 
-O JARVIS é um assistente pessoal Android com interface futurista, interação por voz, comandos locais e memória pessoal persistente. O foco da versão 0.4.0 é guardar informações que a pessoa declara e utilizá-las para personalizar algumas interações.
+O JARVIS é um assistente pessoal Android com interface futurista, interação por voz, comandos locais, memória pessoal persistente e detecção local da frase de ativação.
 
 O núcleo atual não precisa de API de IA ou servidor externo para salvar o perfil, consultar informações memorizadas e executar os comandos locais implementados.
 
@@ -19,9 +19,26 @@ O núcleo atual não precisa de API de IA ou servidor externo para salvar o perf
 - Pesquisa na web por comando, abrindo o navegador.
 - Memória pessoal persistente no armazenamento privado do aplicativo.
 - Reconhecimento de declarações explícitas sobre nome, interesses, preferências, trabalho, objetivos, localidade e estilo de resposta.
-- Consulta e exclusão de informações memorizadas por comandos de voz.
+- Detecção da frase "Hey Jarvis" com openWakeWord e processamento ONNX local, sem chave de API ou conta.
 
-## 3. Como ensinar informações ao JARVIS
+## 3. Ativação por voz
+
+1. Abra o aplicativo.
+2. Conceda a permissão de microfone e, no Android 13+, a permissão de notificações.
+3. Toque em **ATIVAR CHAMADA: JARVIS**.
+4. Diga **"Hey Jarvis"** para acionar o detector.
+5. Com o aplicativo visível, o reconhecimento do comando é iniciado automaticamente. Se o aplicativo estiver em segundo plano, o Android pode exigir que a pessoa toque na notificação antes de continuar.
+
+O detector utiliza o modelo integrado `HEY_JARVIS` da biblioteca openWakeWord Android. O modelo reconhece a frase "Hey Jarvis"; não é a palavra isolada "Jarvis".
+
+### Custo e licenciamento
+
+- Não há AccessKey, conta Picovoice, cobrança por chamada ou mensalidade.
+- O código da biblioteca openWakeWord Android declara licença Apache 2.0.
+- Os modelos pré-treinados openWakeWord são licenciados sob CC BY-NC-SA 4.0. Essa licença não permite uso comercial sem autorização compatível e exige atribuição e compartilhamento nos termos da licença.
+- Para transformar o JARVIS em produto comercial, substitua o modelo por outro com licença comercialmente compatível ou treine/obtenha um modelo com direitos adequados antes da distribuição.
+
+## 4. Como ensinar informações ao JARVIS
 
 Fale de forma direta, por exemplo:
 
@@ -36,7 +53,7 @@ Fale de forma direta, por exemplo:
 
 As informações são salvas localmente. Se uma declaração não seguir os padrões reconhecidos pelo código, o JARVIS pode não identificá-la como informação de perfil.
 
-## 4. Consultar e administrar a memória
+## 5. Consultar e administrar a memória
 
 | Comando | Resultado |
 |---|---|
@@ -47,15 +64,15 @@ As informações são salvas localmente. Se uma declaração não seguir os padr
 
 A exclusão completa também pode ser feita limpando os dados do aplicativo nas configurações do Android ou desinstalando-o.
 
-## 5. Armazenamento e privacidade
+## 6. Armazenamento e privacidade
 
 O perfil é guardado em `SharedPreferences`, no espaço privado do aplicativo. A funcionalidade de memória não transmite o perfil para uma API ou backend.
 
-A entrada de voz utiliza o serviço de reconhecimento de fala disponível/configurado no aparelho. Esse serviço pode pertencer ao Google ou a outro provedor, e suas práticas de processamento e privacidade são independentes do armazenamento local do JARVIS.
+A detecção da frase de ativação é processada localmente pelo modelo ONNX. A entrada de voz depois da ativação utiliza o serviço de reconhecimento de fala disponível/configurado no aparelho. Esse serviço pode pertencer ao Google ou a outro provedor, e suas práticas de processamento e privacidade são independentes do armazenamento local do JARVIS.
 
 Não use a memória do aplicativo como cofre de senhas, dados bancários, documentos ou outras informações altamente sensíveis.
 
-## 6. Limitações conhecidas
+## 7. Limitações conhecidas
 
 A memória atual é baseada em padrões de frases e regras locais. Ela não interpreta qualquer frase com compreensão humana, não aprende automaticamente tudo o que é dito e não possui raciocínio generativo amplo.
 
@@ -63,20 +80,20 @@ Ainda não estão implementados:
 - Modelo de linguagem local embarcado.
 - Conversação aberta com raciocínio avançado totalmente offline.
 - Aprendizado automático de padrões de comportamento.
-- Palavra de ativação contínua "Jarvis".
-- Escuta permanente garantida com a tela apagada.
+- Ativação garantida com a tela apagada em todos os aparelhos.
 - Voz neural masculina de alta naturalidade integrada ao aplicativo.
 
 A qualidade do reconhecimento de fala e da voz sintetizada também depende dos serviços e vozes instalados no Android.
 
-## 7. Requisitos e permissões
+## 8. Requisitos e permissões
 
 - Android 8.0 (API 26) ou superior.
-- Permissão de microfone para reconhecer comandos.
+- Permissão de microfone para detectar a frase de ativação e reconhecer comandos.
+- Permissão de notificações para exibir o estado do serviço.
 - Serviço de reconhecimento de fala disponível.
 - Conexão com a internet para abrir pesquisas na web e quando o serviço de voz exigir.
 
-## 8. Compilação e instalação
+## 9. Compilação e instalação
 
 A compilação é feita pelo GitHub Actions, sem necessidade de compilar no computador local:
 
@@ -86,29 +103,19 @@ A compilação é feita pelo GitHub Actions, sem necessidade de compilar no comp
 4. Aguarde o workflow terminar com sucesso.
 5. Baixe o artefato `jarvis-ai-debug-apk`.
 6. Extraia o ZIP e instale `app-debug.apk`.
-7. Conceda a permissão de microfone quando solicitada.
+7. Conceda as permissões de microfone e notificações.
 
 O artefato é um APK debug. Se houver incompatibilidade de assinatura ao atualizar, desinstale a versão anterior antes de instalar a nova. A desinstalação remove a memória local.
 
-## 9. Próximas evoluções
+## 10. Próximas evoluções
 
 1. Criar uma área de perfil para revisar, corrigir e excluir cada informação.
 2. Melhorar a extração de fatos e o reconhecimento de contexto em português.
 3. Implementar um mecanismo de memória com categorias, origem e confirmação do usuário.
 4. Avaliar modelos de linguagem locais adequados ao hardware Android.
 5. Integrar voz neural opcional e controles de privacidade.
-6. Investigar ativação por palavra-chave e execução em segundo plano dentro das políticas e restrições do Android.
+6. Testar estabilidade, consumo de bateria e comportamento do serviço em segundo plano no Xiaomi Mi 11 Lite.
 
 ---
 
 Para a visão geral do projeto, consulte o [README principal](../README.md).
-
-## Ativação automática por palavra-chave — 0.6.0
-
-- SDK: Porcupine Android 4.0.2.
-- Palavra-chave integrada: JARVIS.
-- Serviço em primeiro plano do tipo microphone, com notificação persistente.
-- A chave `PICOVOICE_ACCESS_KEY` deve ser cadastrada como GitHub Actions secret; ela não é armazenada no repositório.
-- Ative pelo botão **ATIVAR CHAMADA: JARVIS** com o aplicativo aberto e as permissões de microfone/notificações concedidas.
-- A detecção de palavra-chave é local após inicialização/licenciamento do SDK. O reconhecimento do comando depois da chamada continua usando o reconhecedor de fala configurado no Android.
-- Limitação: quando o app não está visível, o Android pode impedir que a atividade seja aberta automaticamente; nesse caso o JARVIS publica uma notificação para continuar. HyperOS também pode encerrar o serviço por economia de bateria.
