@@ -330,7 +330,7 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
                                             fontWeight = FontWeight.Bold
                                         )
                                     }
-                                    Text("CORE  /  V0.6", color = Muted, fontSize = 9.sp)
+                                    Text("CORE  /  V0.8", color = Muted, fontSize = 9.sp)
                                 }
                             }
 
