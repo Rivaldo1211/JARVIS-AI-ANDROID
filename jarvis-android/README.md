@@ -119,3 +119,21 @@ O artefato é um APK debug. Se houver incompatibilidade de assinatura ao atualiz
 ---
 
 Para a visão geral do projeto, consulte o [README principal](../README.md).
+
+
+## Pesquisa por voz e leitura de tela — versão 0.8.0
+
+O JARVIS pode abrir pesquisas por comando de voz no Google e no YouTube. Ao iniciar uma pesquisa, o aplicativo arma uma leitura única da página de resultados e o serviço de acessibilidade lê o texto disponível quando a página carrega.
+
+Exemplos:
+- "Jarvis, o Flamengo joga hoje?" — pesquisa no Google com a data atual.
+- "Jarvis, pesquise gols do Flamengo no YouTube" — abre os resultados do YouTube.
+- "Jarvis, leia a tela" — solicita a leitura do conteúdo acessível que estiver visível.
+
+### Ativar leitura de tela
+1. Abra o JARVIS e toque em **ATIVAR LEITURA DE TELA**.
+2. Nas configurações de Acessibilidade do Android, selecione **JARVIS AI - Leitura de tela** e ative o serviço.
+3. Autorize o serviço. Ele só tenta extrair e falar o conteúdo quando uma pesquisa é iniciada pelo JARVIS ou quando você solicita a leitura.
+4. Para interromper, desative o serviço nas configurações de Acessibilidade.
+
+A leitura depende dos elementos que o aplicativo de destino disponibiliza à acessibilidade. Algumas páginas, vídeos, anúncios e conteúdos protegidos podem não expor texto legível. O JARVIS lê o texto extraído da página; não valida por conta própria a veracidade dos resultados e não substitui uma API esportiva estruturada. O serviço de acessibilidade tem acesso ao conteúdo da janela ativa enquanto estiver habilitado; mantenha-o ativado apenas se concordar com essa permissão.
