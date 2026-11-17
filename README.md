@@ -1,10 +1,10 @@
 # JARVIS AI — Android
 
-Assistente pessoal para Android, desenvolvido em Kotlin e Jetpack Compose. O projeto prioriza interação por voz, comandos no aparelho e uma memória pessoal local, sem exigir uma API de IA para essas funções.
+Assistente pessoal para Android, desenvolvido em Kotlin e Jetpack Compose. O projeto prioriza interação por voz, comandos no aparelho e uma memória pessoal local.
 
 <p align="center">
-  <strong>JARVIS 0.6.0</strong><br>
-  Assistente Android • Português brasileiro • Memória local
+  <strong>JARVIS 0.7.0</strong><br>
+  Assistente Android • Português brasileiro • Memória local • Wake word offline
 </p>
 
 ## Estado do projeto
@@ -18,18 +18,18 @@ Assistente pessoal para Android, desenvolvido em Kotlin e Jetpack Compose. O pro
 | Pesquisa na web por comando | Implementada; abre o navegador |
 | Memória pessoal persistente no aparelho | Implementada |
 | Perfil adaptativo por informações declaradas | Implementado em nível básico |
+| Detecção local da frase "Hey Jarvis" | Integrada ao código; aguardando validação do APK e teste no aparelho |
 | Conversação generativa com raciocínio amplo | Ainda não implementada |
 | Modelo de linguagem executado offline | Planejado |
-| Palavra de ativação contínua "Jarvis" | Planejada |
-| Funcionamento contínuo com tela apagada | Não implementado |
+| Funcionamento contínuo com tela apagada | Depende das regras do Android e do gerenciamento de bateria do fabricante |
 
 ## Como funciona atualmente
 
-O aplicativo Android está em [`jarvis-android/`](jarvis-android/). Nesta versão, o núcleo de interação funciona por reconhecimento de fala, regras locais, comandos do aparelho e síntese de voz.
+O aplicativo Android está em [`jarvis-android/`](jarvis-android/). O núcleo de interação usa reconhecimento de fala, regras locais, comandos do aparelho e síntese de voz.
 
 A memória identifica algumas declarações explícitas feitas pela pessoa, registra os dados no armazenamento privado do aplicativo e utiliza essas informações em respostas específicas. Isso é uma primeira camada de personalização; não é aprendizado autônomo irrestrito nem substitui um modelo de linguagem.
 
-**A versão Android atual não depende de Gemini, OpenAI ou outro endpoint de IA para sua memória e comandos locais.** Uma integração antiga com backend/API não faz parte do fluxo atual do aplicativo.
+A detecção da frase de ativação é feita pelo openWakeWord com inferência ONNX no próprio aparelho. Não exige conta, AccessKey ou serviço de nuvem para detectar a palavra-chave. O reconhecimento do comando depois da ativação continua dependendo do serviço de fala configurado no Android.
 
 ## Memória pessoal e privacidade
 
@@ -90,25 +90,30 @@ O APK gerado é de depuração (debug), não uma versão assinada para distribui
 
 ## Próximas etapas
 
-1. Ampliar a memória para fatos, preferências e contexto com gestão transparente.
-2. Criar uma tela para visualizar, editar e excluir informações salvas.
-3. Incorporar um modelo de linguagem local, após avaliar desempenho e compatibilidade com o hardware.
-4. Melhorar a qualidade da voz com uma opção neural compatível.
-5. Pesquisar uma implementação segura de ativação por palavra-chave e serviço em segundo plano, respeitando as restrições do Android.
+1. Validar a detecção de "Hey Jarvis" no Xiaomi Mi 11 Lite, inclusive consumo de bateria e estabilidade em segundo plano.
+2. Ampliar a memória para fatos, preferências e contexto com gestão transparente.
+3. Criar uma tela para visualizar, editar e excluir informações salvas.
+4. Incorporar um modelo de linguagem local, após avaliar desempenho e compatibilidade com o hardware.
+5. Melhorar a qualidade da voz com uma opção neural compatível.
 
-## Segurança
+## Segurança e licenças
 
 - Não inclua chaves de API, tokens, senhas ou credenciais no código, no APK ou em commits.
 - Não registre informações pessoais sem transparência e possibilidade de exclusão.
 - Antes de integrar serviços externos, documente quais dados são enviados, para qual finalidade e sob quais condições.
+- A implementação openWakeWord-Android utilizada declara código Apache 2.0, mas os modelos pré-treinados openWakeWord são licenciados sob CC BY-NC-SA 4.0. Essa licença restringe o uso comercial e exige atenção à atribuição e ao compartilhamento sob a mesma licença. Não use esse modelo em distribuição comercial sem substituir por um modelo com licença compatível.
 
 ## Documentação
 
 - [Documentação técnica e funcional do Android](jarvis-android/README.md)
 - [Workflow de compilação](.github/workflows/jarvis-android-build.yml)
 
-## Ativação por voz (0.6.0)
+## Ativação por voz — 0.7.0
 
-A detecção da palavra-chave usa o SDK Porcupine, com processamento de áudio no aparelho. Para habilitar, crie uma conta no [Picovoice Console](https://console.picovoice.ai/), gere uma AccessKey e cadastre-a no GitHub em **Settings → Secrets and variables → Actions → New repository secret**, com o nome `PICOVOICE_ACCESS_KEY`. Nunca coloque essa chave diretamente no código ou em commits. O workflow injeta o segredo somente durante a compilação.
+1. Abra o JARVIS e conceda a permissão de microfone e notificações.
+2. Toque em **ATIVAR CHAMADA: JARVIS**.
+3. Diga **"Hey Jarvis"** para acionar o detector integrado.
 
-No Android, abra o JARVIS e toque em **ATIVAR CHAMADA: JARVIS**. O Android exibirá a notificação permanente do serviço. A detecção pode continuar com a tela apagada enquanto o serviço permanecer ativo, mas o HyperOS pode encerrar processos em segundo plano. Quando a palavra for detectada com o app em primeiro plano, o reconhecimento de comando é iniciado automaticamente; se o app estiver totalmente em segundo plano, o sistema mostra uma notificação para tocar e continuar a conversa. A inicialização do serviço exige que o usuário abra o app e ative o recurso enquanto ele está visível, conforme as regras de microfone do Android 14+.
+A detecção usa openWakeWord e ONNX Runtime no aparelho, sem AccessKey, conta ou mensalidade. O modelo pré-treinado utilizado tem licença CC BY-NC-SA 4.0 e é adequado apenas a usos compatíveis com essa licença, não a exploração comercial sem autorização/licença alternativa.
+
+O serviço de microfone em primeiro plano mantém uma notificação visível. A detecção pode continuar com a tela apagada enquanto o Android mantiver o serviço ativo, mas o HyperOS pode encerrar processos por economia de bateria. Quando o app está em primeiro plano, a detecção inicia o reconhecimento do comando; em segundo plano, o Android pode exigir que a pessoa toque na notificação para continuar. A inicialização do serviço deve ser feita com o aplicativo visível, respeitando as restrições do Android 14+.
