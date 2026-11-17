@@ -12,9 +12,8 @@ android {
         applicationId = "br.com.rivaldo.jarvisai"
         minSdk = 26
         targetSdk = 35
-        versionCode = 6
-        versionName = "0.6.0"
-        buildConfigField("String", "PICOVOICE_ACCESS_KEY", "\"${System.getenv("PICOVOICE_ACCESS_KEY") ?: ""}\"")
+        versionCode = 7
+        versionName = "0.7.0"
     }
 
     compileOptions {
@@ -39,6 +38,6 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
-    implementation("ai.picovoice:porcupine-android:4.0.2")
+    implementation("com.github.msnilsen:openwakeword-android:0.1.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
 }
