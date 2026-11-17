@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">JARVIS AI</string>
+    <string name="jarvis_accessibility_description">Permite ao JARVIS ler o texto visível no Google, Chrome e YouTube somente quando você solicitar uma pesquisa ou pedir para ler a tela.</string>
+</resources>
