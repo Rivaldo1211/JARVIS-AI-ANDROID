@@ -1,6 +1,6 @@
 # JARVIS Android — Documentação do aplicativo
 
-**Versão do código:** 0.7.0  
+**Versão do código:** 0.8.1 (teste sem Acessibilidade)  
 **Plataforma:** Android 8.0 (API 26) ou superior  
 **Tecnologias:** Kotlin, Jetpack Compose, Android SpeechRecognizer, Text-to-Speech, openWakeWord e ONNX Runtime
 
@@ -101,7 +101,7 @@ A compilação é feita pelo GitHub Actions, sem necessidade de compilar no comp
 2. Selecione **Build JARVIS Android APK**.
 3. Clique em **Run workflow** e escolha `main`.
 4. Aguarde o workflow terminar com sucesso.
-5. Baixe o artefato `jarvis-ai-debug-apk`.
+5. Baixe o artefato `jarvis-ai-no-accessibility-debug-apk`.
 6. Extraia o ZIP e instale `app-debug.apk`.
 7. Conceda as permissões de microfone e notificações.
 
@@ -137,3 +137,8 @@ Exemplos:
 4. Para interromper, desative o serviço nas configurações de Acessibilidade.
 
 A leitura depende dos elementos que o aplicativo de destino disponibiliza à acessibilidade. Algumas páginas, vídeos, anúncios e conteúdos protegidos podem não expor texto legível. O JARVIS lê o texto extraído da página; não valida por conta própria a veracidade dos resultados e não substitui uma API esportiva estruturada. O serviço de acessibilidade tem acesso ao conteúdo da janela ativa enquanto estiver habilitado; mantenha-o ativado apenas se concordar com essa permissão.
+
+
+## Versão de teste 0.8.1 — sem serviço de Acessibilidade
+
+Nesta compilação, o serviço de leitura de tela não é declarado no Manifest e o botão para ativá-lo foi removido. Os comandos relacionados à leitura de tela informam que o recurso está temporariamente desativado. A pesquisa por voz continua abrindo o navegador, mas não lê automaticamente os resultados. Esta versão serve para isolar o impacto da permissão de Acessibilidade no alerta do Play Protect; não garante que o alerta será removido.
