@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.provider.Settings
 import android.os.Build
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
@@ -78,6 +79,7 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
     private var answer by mutableStateOf("Sistemas em espera. Como posso ajudar?")
     private var listening by mutableStateOf(false)
     private var wakeModeEnabled by mutableStateOf(false)
+    private var floatingFaceEnabled by mutableStateOf(false)
     private var wakeReceiverRegistered = false
     private val wakeReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -220,6 +222,7 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
         super.onCreate(savedInstanceState)
         tts = TextToSpeech(this, this)
         wakeModeEnabled = getSharedPreferences("jarvis_wake_settings", MODE_PRIVATE).getBoolean("wake_enabled", false)
+        floatingFaceEnabled = getSharedPreferences(FloatingFaceService.PREFS, MODE_PRIVATE).getBoolean(FloatingFaceService.KEY_ENABLED, false)
         status = if (SpeechRecognizer.isRecognitionAvailable(this)) {
             "SISTEMAS ONLINE"
         } else {
@@ -328,7 +331,7 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
                                             fontWeight = FontWeight.Bold
                                         )
                                     }
-                                    Text("CORE  /  V0.8.1 TEST", color = Muted, fontSize = 9.sp)
+                                    Text("CORE  /  V0.9.0", color = Muted, fontSize = 9.sp)
                                 }
                             }
 
@@ -538,6 +541,29 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
                                     fontSize = 11.sp
                                 )
                             }
+                            androidx.compose.material3.OutlinedButton(
+                                onClick = { toggleFloatingFace() },
+                                modifier = Modifier.fillMaxWidth().height(52.dp),
+                                shape = RoundedCornerShape(16.dp),
+                                colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
+                                    contentColor = if (floatingFaceEnabled) Gold else Cyan
+                                ),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x665B9DB4))
+                            ) {
+                                Text(
+                                    if (floatingFaceEnabled) "DESATIVAR ROSTO FLUTUANTE" else "ATIVAR ROSTO FLUTUANTE",
+                                    fontWeight = FontWeight.SemiBold,
+                                    letterSpacing = 1.1.sp,
+                                    fontSize = 11.sp
+                                )
+                            }
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                "O rosto permanece sobre outros aplicativos. Toque para abrir; mantenha pressionado para fechar.",
+                                color = Muted,
+                                fontSize = 10.sp,
+                                textAlign = TextAlign.Center
+                            )
                             Spacer(Modifier.height(14.dp))
                             Text(
                                 "VOICE INTERFACE  •  SECURE CONNECTION  •  PERSONAL AI",
@@ -591,6 +617,44 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
             getSharedPreferences("jarvis_wake_settings", MODE_PRIVATE).edit().putBoolean("wake_enabled", true).apply()
             if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) startListening()
         }
+    }
+
+    private fun toggleFloatingFace() {
+        if (!Settings.canDrawOverlays(this)) {
+            answer = "Autorize Exibir sobre outros apps para mostrar o rosto flutuante. Depois volte ao JARVIS e toque novamente."
+            status = "AUTORIZAÇÃO DO POPUP NECESSÁRIA"
+            try {
+                startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, android.net.Uri.parse("package:$packageName")))
+            } catch (_: Exception) {
+                startActivity(Intent(Settings.ACTION_SETTINGS))
+            }
+            return
+        }
+        if (floatingFaceEnabled) {
+            stopService(Intent(this, FloatingFaceService::class.java).setAction(FloatingFaceService.ACTION_STOP))
+            floatingFaceEnabled = false
+            getSharedPreferences(FloatingFaceService.PREFS, MODE_PRIVATE).edit()
+                .putBoolean(FloatingFaceService.KEY_ENABLED, false).apply()
+            speak("Rosto flutuante desativado.")
+        } else {
+            val serviceIntent = Intent(this, FloatingFaceService::class.java).setAction(FloatingFaceService.ACTION_START)
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(serviceIntent) else startService(serviceIntent)
+                floatingFaceEnabled = true
+                getSharedPreferences(FloatingFaceService.PREFS, MODE_PRIVATE).edit()
+                    .putBoolean(FloatingFaceService.KEY_ENABLED, true).apply()
+                speak("Rosto flutuante ativado. Estarei visível sobre os outros aplicativos.")
+            } catch (error: Exception) {
+                floatingFaceEnabled = false
+                speak("Não consegui iniciar o rosto flutuante. " + (error.message ?: "Verifique as permissões."))
+            }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        floatingFaceEnabled = getSharedPreferences(FloatingFaceService.PREFS, MODE_PRIVATE)
+            .getBoolean(FloatingFaceService.KEY_ENABLED, false) && Settings.canDrawOverlays(this)
     }
 
     private fun enableWakeWordMode() {
