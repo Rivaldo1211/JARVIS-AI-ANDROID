@@ -104,7 +104,7 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
 
     private fun profileSummary(): String {
         val facts = loadFacts()
-        if (facts.length() == 0) return "Ainda estou construindo seu perfil. Você pode me contar seu nome, preferências, interesses e objetivos."
+        if (facts.length() == 0) return "Ainda estou conhecendo você. Se quiser, me conte um pouco sobre seus interesses e o que é importante para você."
         val labels = linkedMapOf(
             "nome" to "Nome", "gosta" to "Interesses", "prefere" to "Preferência",
             "trabalho" to "Trabalho", "objetivo" to "Objetivo", "cidade" to "Localidade",
@@ -139,7 +139,7 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
                     "cidade" -> "sua localidade"
                     else -> "seu estilo de conversa"
                 }
-                return "Entendido. Vou guardar essa informação sobre $label neste aparelho."
+                return "Certo, vou guardar isso para levar em conta nas nossas próximas conversas."
             }
         }
         return null
@@ -158,7 +158,7 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
                 speak(profileSummary())
             normalized.contains("qual meu nome") || normalized.contains("como me chamo") -> {
                 val name = facts.optString("nome")
-                speak(if (name.isNotBlank()) "Seu nome é $name." else "Ainda não sei seu nome. Você pode dizer: meu nome é...")
+                speak(if (name.isNotBlank()) "Seu nome é $name." else "Ainda não sei como você prefere ser chamado. Quer me contar?")
             }
             normalized.contains("esqueça tudo") || normalized.contains("apague minha memória") -> {
                 memoryStore.edit().clear().apply()
@@ -176,7 +176,7 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
                     target.contains("youtube") -> openApp("com.google.android.youtube", "YouTube")
                     target.contains("whatsapp") -> openApp("com.whatsapp", "WhatsApp")
                     target.contains("chrome") || target.contains("internet") -> openApp("com.android.chrome", "Chrome")
-                    else -> speak("Ainda não tenho o atalho para $target.")
+                    else -> speak("Ainda não consigo abrir $target diretamente. Posso ganhar esse atalho em uma próxima atualização.")
                 }
             }
             normalized.contains("ler a tela") || normalized.contains("leia a tela") ||
@@ -186,12 +186,12 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
             normalized.contains("que horas") ->
                 speak("Você pode conferir o horário na barra superior do seu celular.")
             normalized.contains("obrigado") || normalized.contains("obrigada") ->
-                speak("À disposição. Estou aprendendo suas preferências para tornar nossas próximas conversas mais naturais.")
+                speak("Por nada! Quando precisar, é só me chamar.")
             normalized == "oi" || normalized == "olá" || normalized == "bom dia" ||
                 normalized == "boa tarde" || normalized == "boa noite" ||
                 normalized == "jarvis" || normalized == "oi jarvis" || normalized == "olá jarvis" -> {
                 val name = facts.optString("nome")
-                speak(if (name.isNotBlank()) "Olá, $name. É bom continuar nossa conversa." else "Olá. Ainda estou conhecendo você. Como prefere que eu te chame?")
+                speak(if (name.isNotBlank()) "Oi, $name! Bom ter você por aqui. O que vamos fazer hoje?" else "Oi! Que bom falar com você. Como posso te chamar?")
             }
             normalized.startsWith("pesquise") || normalized.startsWith("pesquisar") || normalized.startsWith("procure") -> {
                 val query = messageForSearch(message)
@@ -689,7 +689,7 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
     override fun onInit(result: Int) {
         if (result == TextToSpeech.SUCCESS) {
             configureJarvisVoice()
-            answer = "Sistemas online. Estou à sua disposição."
+            answer = "Pronto, estou aqui. O que você precisa?"
         } else {
             status = "SÍNTESE DE VOZ INDISPONÍVEL"
         }
@@ -722,8 +722,8 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
         }
 
         // Timbre mais grave e ritmo calmo. O gênero real da voz depende das vozes instaladas no aparelho.
-        engine.setPitch(0.82f)
-        engine.setSpeechRate(0.92f)
+        engine.setPitch(0.96f)
+        engine.setSpeechRate(0.95f)
     }
 
     private fun startListening() {
@@ -748,7 +748,7 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
                     val phrase = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull().orEmpty()
                     transcript = phrase
                     if (wakeModeEnabled) startWakeWordService()
-                    if (phrase.isNotBlank()) handleCommand(phrase) else speak("Não consegui entender. Pode repetir?")
+                    if (phrase.isNotBlank()) handleCommand(phrase) else speak("Acho que não peguei essa. Pode falar mais uma vez?")
                 }
                 override fun onPartialResults(partialResults: Bundle?) = Unit
                 override fun onEvent(eventType: Int, params: Bundle?) = Unit
@@ -781,7 +781,7 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
         } else {
             "https://www.google.com/search?q=$encoded"
         }
-        speak(if (youtube) "Pesquisando no YouTube: $query" else "Pesquisando no Google: $query. ")
+        speak(if (youtube) "Beleza, vou procurar isso no YouTube: $query" else "Certo, vou pesquisar isso: $query.")
         try {
             startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url)))
         } catch (_: Exception) {
@@ -792,10 +792,10 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
     private fun openApp(packageName: String, label: String) {
         val launchIntent = packageManager.getLaunchIntentForPackage(packageName)
         if (launchIntent != null) {
-            speak("Abrindo $label.")
+            speak("Claro. Abrindo o $label.")
             startActivity(launchIntent)
         } else {
-            speak("Não encontrei $label instalado neste aparelho.")
+            speak("Não achei o $label instalado por aqui.")
         }
     }
 
