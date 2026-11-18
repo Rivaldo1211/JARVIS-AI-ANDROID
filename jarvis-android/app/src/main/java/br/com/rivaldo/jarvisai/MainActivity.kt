@@ -178,11 +178,9 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
                 }
             }
             normalized.contains("ler a tela") || normalized.contains("leia a tela") ||
-                normalized.contains("o que está aparecendo") || normalized.contains("o que aparece na tela") -> {
-                sendBroadcast(Intent(JarvisScreenReaderService.ACTION_READ_SCREEN).setPackage(packageName))
-                speak("Vou tentar ler o conteúdo visível. Se a leitura de tela ainda não estiver ativada, habilite o serviço de acessibilidade do JARVIS nas configurações.")
-            }
-            normalized.contains("ativar leitura de tela") || normalized.contains("ativar leitor de tela") -> openAccessibilitySettings()
+                normalized.contains("o que está aparecendo") || normalized.contains("o que aparece na tela") ||
+                normalized.contains("ativar leitura de tela") || normalized.contains("ativar leitor de tela") ->
+                speak("A leitura de tela está temporariamente desativada nesta versão de teste.")
             normalized.contains("que horas") ->
                 speak("Você pode conferir o horário na barra superior do seu celular.")
             normalized.contains("obrigado") || normalized.contains("obrigada") ->
@@ -330,7 +328,7 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
                                             fontWeight = FontWeight.Bold
                                         )
                                     }
-                                    Text("CORE  /  V0.8", color = Muted, fontSize = 9.sp)
+                                    Text("CORE  /  V0.8.1 TEST", color = Muted, fontSize = 9.sp)
                                 }
                             }
 
@@ -541,21 +539,6 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
                                 )
                             }
                             Spacer(Modifier.height(14.dp))
-                            androidx.compose.material3.OutlinedButton(
-                                onClick = { openAccessibilitySettings() },
-                                modifier = Modifier.fillMaxWidth().height(52.dp),
-                                shape = RoundedCornerShape(16.dp),
-                                colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(contentColor = Ice),
-                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x665B9DB4))
-                            ) {
-                                Text(
-                                    "ATIVAR LEITURA DE TELA",
-                                    fontWeight = FontWeight.SemiBold,
-                                    letterSpacing = 1.2.sp,
-                                    fontSize = 11.sp
-                                )
-                            }
-                            Spacer(Modifier.height(14.dp))
                             Text(
                                 "VOICE INTERFACE  •  SECURE CONNECTION  •  PERSONAL AI",
                                 color = Color(0xFF456176),
@@ -728,26 +711,18 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
     }
 
     private fun launchSearch(query: String, youtube: Boolean) {
-        val prefs = getSharedPreferences(JarvisScreenReaderService.PREFS, MODE_PRIVATE)
-        prefs.edit().putBoolean(JarvisScreenReaderService.KEY_READ_NEXT, true).apply()
         val encoded = URLEncoder.encode(query, "UTF-8")
         val url = if (youtube) {
             "https://www.youtube.com/results?search_query=$encoded"
         } else {
             "https://www.google.com/search?q=$encoded"
         }
-        speak(if (youtube) "Pesquisando no YouTube: $query" else "Pesquisando no Google: $query. Vou ler os resultados quando a página carregar.")
+        speak(if (youtube) "Pesquisando no YouTube: $query" else "Pesquisando no Google: $query. ")
         try {
             startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url)))
         } catch (_: Exception) {
-            prefs.edit().putBoolean(JarvisScreenReaderService.KEY_READ_NEXT, false).apply()
             speak("Não consegui abrir o navegador para fazer essa pesquisa.")
         }
-    }
-
-    private fun openAccessibilitySettings() {
-        speak("Abrindo as configurações de acessibilidade. Encontre JARVIS AI e ative o serviço de leitura de tela.")
-        startActivity(Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS))
     }
 
     private fun openApp(packageName: String, label: String) {
