@@ -3,7 +3,7 @@
 Assistente pessoal para Android, desenvolvido em Kotlin e Jetpack Compose. O projeto prioriza interação por voz, comandos no aparelho e uma memória pessoal local.
 
 <p align="center">
-  <strong>JARVIS 0.7.0</strong><br>
+  <strong>JARVIS 0.8.1 TESTE</strong><br>
   Assistente Android • Português brasileiro • Memória local • Wake word offline
 </p>
 
@@ -68,7 +68,7 @@ O workflow [Build JARVIS Android APK](.github/workflows/jarvis-android-build.yml
 2. Selecione **Build JARVIS Android APK**.
 3. Clique em **Run workflow** e confirme a branch `main`.
 4. Aguarde o resultado ficar como **Success**.
-5. Abra a execução concluída e baixe o artefato `jarvis-ai-debug-apk`.
+5. Abra a execução concluída e baixe o artefato `jarvis-ai-no-accessibility-debug-apk`.
 6. Extraia o ZIP e instale o arquivo `app-debug.apk` no Android.
 
 O APK gerado é de depuração (debug), não uma versão assinada para distribuição na Play Store. Se o Android informar conflito de assinatura ao atualizar uma instalação anterior, pode ser necessário desinstalar a versão antiga antes; isso apaga os dados locais desse aplicativo.
@@ -135,3 +135,8 @@ Exemplos:
 4. Para interromper, desative o serviço nas configurações de Acessibilidade.
 
 A leitura depende dos elementos que o aplicativo de destino disponibiliza à acessibilidade. Algumas páginas, vídeos, anúncios e conteúdos protegidos podem não expor texto legível. O JARVIS lê o texto extraído da página; não valida por conta própria a veracidade dos resultados e não substitui uma API esportiva estruturada. O serviço de acessibilidade tem acesso ao conteúdo da janela ativa enquanto estiver habilitado; mantenha-o ativado apenas se concordar com essa permissão.
+
+
+## Versão de teste sem Acessibilidade — 0.8.1
+
+Esta compilação remove o serviço de Acessibilidade do Android e o botão de ativação da leitura de tela. Os comandos de leitura informam que o recurso está temporariamente desativado. Permanecem as funções de voz, wake word, memória local, atalhos e abertura de pesquisas no navegador. Esta é uma compilação de diagnóstico; não representa certificação de segurança nem garantia de que o Play Protect deixará de exibir alertas.
